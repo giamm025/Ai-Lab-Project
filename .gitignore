@@ -1,0 +1,32 @@
+
+# 1. Ambienti Virtuali e Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+vision/
+env/
+.env
+
+# 2. Jupyter Notebooks (File temporanei e cache)
+.ipynb_checkpoints/
+
+# 3. Dati Grezzi ed Estratti (FONDAMENTALE: Ignora i video e gli array!)
+# Ignoriamo il contenuto delle cartelle, ma manteniamo le cartelle stesse
+data/raw/
+data/processed/
+data/target_videos/
+data/WLASL_v0.3.json
+
+# 4. Modelli PyTorch Addestrati (Pesano tantissimo, non vanno su Git)
+models/*.pt
+models/*.pth
+models/*.weights
+
+# 5. File di Sistema (Windows/Mac)
+.DS_Store
+Thumbs.db
+
+# 6. IDEs e Code Editors
+.vscode/
+.idea/

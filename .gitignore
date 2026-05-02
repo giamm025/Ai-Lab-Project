@@ -7,6 +7,7 @@ __pycache__/
 vision/
 env/
 .env
+requirements.txt
 
 # 2. Jupyter Notebooks (File temporanei e cache)
 .ipynb_checkpoints/

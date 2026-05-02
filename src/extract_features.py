@@ -1,17 +1,13 @@
 
 import json
 import os
-
 import cv2
 import mediapipe as mp
 import numpy as np
 
-# ------------------------------------------------------ CONFIGURAZIONE INIZIALE ------------------------------------------------------
+from config import PROCESSED_DIR, TARGET_WORDS, JSON_PATH, VIDEO_DIR
 
-# salviamo il percorso del json e dei video. Poi scegliamo le 5 parole che ci interessano
-JSON_PATH = '../data/WLASL_v0.3.json'
-VIDEO_DIR = '../data/raw/'
-TARGET_WORDS = ['hello', 'book', 'computer', 'deaf', 'fine']
+# ------------------------------------------------------ CONFIGURAZIONE INIZIALE ------------------------------------------------------
 
 # funzione per filtrare il dataset e prendere solo i video relativi alle parole scelte prima (TARGET_WORDS)
 def filter_dataset():
@@ -149,30 +145,32 @@ if __name__ == "__main__":
     # creiamo la cartella processed se non esiste (la useremo per salvare i file .npy con i dati estratti da ogni video)
     PROCESSED_DIR = '../data/processed/'
     os.makedirs(PROCESSED_DIR, exist_ok=True)
-        
-    # prendiamo la prima parola ("hello")
-    test_word = TARGET_WORDS[0]
     
-    if len(my_videos[test_word]) == 0:
-        print(f"nessun video trovato per la parola {test_word}.")
-        
-    else:
+    print("\n--- INIZIO ESTRAZIONE MASSIVA ---")
+    video_processati = 0
+    video_saltati = 0
+    
+    # prendiamo una alla volta le parole/video che ci interessani
+    for word, video_list in my_videos.items():
 
-        # prendiamo il primo video associato alla test_word
-        test_video_filename = my_videos[test_word][0]
-        
-        # creiamo un nome intelligente per il salvataggio: es. "hello_00123.npy"
-        video_path = os.path.join(VIDEO_DIR, test_video_filename)
-        save_filename = f"{test_word}_{test_video_filename.replace('.mp4', '.npy')}"
-        save_path = os.path.join(PROCESSED_DIR, save_filename)
+        # per ogni video pnella lista: costruiamo il percorso e lo carichiamo dal PC
+        for video_filename in video_list:
+            video_path = os.path.join(VIDEO_DIR, video_filename)
+            save_filename = f"{word}_{video_filename.replace('.mp4', '.npy')}"
+            save_path = os.path.join(PROCESSED_DIR, save_filename)
+            
+            # se il video processato gia esiste => NON lo processiamo di nuovo (ottimizzazione)
+            if not os.path.exists(save_path):
+                process_video(video_path, save_path)
                 
-        # estriamo i keypoints dal video e salviamo il risultato in un file .npy
-        process_video(video_path, save_path)
-        
-        # controlliamo che il file sia stato salvato correttamente e che abbia la forma giusta (Frame, 1530 coordinate)
-        if os.path.exists(save_path):
-
-            dati_estratti = np.load(save_path)
-            print(f"\nSUCCESSO! File salvato correttamente in: {save_path}")
-            print(f"Formato dell'array (Frame, Coordinate): {dati_estratti.shape}")
-            # il formato dovrebbe essere (Frame, 1530) ... se è diverso c'è un errore
+                # DEBUG
+                print(f"Elaborazione: [{word}] -> video {video_filename}...")
+                video_processati += 1
+            else:
+                print(f"Salto: {save_filename} esiste già.")
+                video_saltati += 1
+                
+    print("\n--- RESOCONTO FINALE ---")
+    print(f"Video processati in questa sessione: {video_processati}")
+    print(f"Video già esistenti e saltati: {video_saltati}")
+    print(f"Totale file pronti per la rete: {video_processati + video_saltati}")

@@ -34,3 +34,7 @@ Thumbs.db
 # 6. IDEs e Code Editors
 .vscode/
 .idea/
+
+
+# 7. Documentazione
+docs/

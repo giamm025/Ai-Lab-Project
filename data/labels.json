@@ -1,0 +1,8 @@
+{
+    "happen": 0,
+    "finally": 1,
+    "late": 2,
+    "not-yet": 3,
+    "misunderstand": 4,
+    "understand": 5
+}

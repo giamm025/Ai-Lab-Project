@@ -1,13 +1,27 @@
 import os
 import json
 
-# data/ è la cartella dove salveremo il NOSTRO dataset, ovvero quello formato dai video presi dai vari dataset (WLASL, ASLLVD, MS-ASL) e filtrati per prendere solo quelli relativi alle parole che ci interessano (TARGET_WORDS)
-VIDEO_DIR = '../data/raw/'
-PROCESSED_DIR = '../data/processed/'
-LABELS_FILEPATH = '../data/labels.json'
+''' 
+==========================================================================
+CONFIGURAZIONE GENERALE
+==========================================================================
+'''
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+RAW_DIR = os.path.join(BASE_DIR, '..', 'data', 'raw')                          # data/ è la cartella dove salveremo il NOSTRO dataset, ovvero quello formato dai video presi dai vari dataset 
+PROCESSED_DIR = os.path.join(BASE_DIR, '..', 'data', 'processed')       # la cartella in cui salveremo i file .npy contenenti le coordinate di mani e volto estratti con MediaPipe
+LABELS_FILEPATH = os.path.join(BASE_DIR, '..', 'data', 'labels.json')   # file immutabile per il mapping Parola -> Numero
+DATASETS_DIR = os.path.join(BASE_DIR, '..', 'datasets')                 # cartella dove lo script download_datasets.py salva i dataset originali
+
 
 # le parole che utilizzeremo per costruire il nostro dataset, addestrare e testare il modello (prendendo solo i video relativi a queste parole)
 TARGET_WORDS = ['happen', 'finally', 'late', 'not-yet', 'misunderstand', 'understand']
+
+''' 
+==========================================================================
+GESTIONE ETICHETTE (LABELS)
+==========================================================================
+'''
 
 # crea il labels.json basandosi sugli indici di TARGET_WORDS
 def create_label_map():

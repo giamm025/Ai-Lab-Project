@@ -16,6 +16,8 @@ requirements.txt
 # Conserviamo solo le cartelle principali dei dataset (grazie ai .gitkeep)
 datasets/*/*
 !datasets/*/.gitkeep
+data/raw/*
+data/processed/*
 
 # 4. Modelli PyTorch Addestrati (Pesano tantissimo, non vanno su Git)
 models/*.pt

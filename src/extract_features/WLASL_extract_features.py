@@ -5,14 +5,16 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
-from config import PROCESSED_DIR, TARGET_WORDS, JSON_PATH, VIDEO_DIR
+from config import PROCESSED_DIR, TARGET_WORDS, VIDEO_DIR
 
 # ------------------------------------------------------ CONFIGURAZIONE INIZIALE ------------------------------------------------------
+
+WLASL_JSON_PATH = '../data/WLASL_v0.3.json'
 
 # funzione per filtrare il dataset e prendere solo i video relativi alle parole scelte prima (TARGET_WORDS)
 def filter_dataset():
 
-    with open(JSON_PATH, 'r') as f:
+    with open(WLASL_JSON_PATH, 'r') as f:
         wlasl_data = json.load(f)
     
     filtered_videos = {word: [] for word in TARGET_WORDS}

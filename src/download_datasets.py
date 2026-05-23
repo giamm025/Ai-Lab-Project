@@ -1,10 +1,15 @@
 import kagglehub
+import argparse
+from pathlib import Path
+
+# calcola il percorso assoluto della cartella Ai-Lab-Project (in questo modo possiamo runnare il coice da qualsiasi cartella senza problemi, sia che ci troviamo in src/ sia che ci troviamo in Ai-Lab-Project/)
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 paths = {
-    "asllvd": "../datasets/ALLVD",
-    "asl": "../datasets/ASL_Citizen",
-    "ms": "../datasets/MS_ASL",
-    "wlasl": "../datasets/WLASL",
+    "asllvd": BASE_DIR / "datasets" / "ASLLVD",
+    "asl": BASE_DIR / "datasets" / "ASL_Citizen",
+    "ms": BASE_DIR / "datasets" / "MS_ASL",
+    "wlasl": BASE_DIR / "datasets" / "WLASL",
 }
 
 urls = {
@@ -30,12 +35,10 @@ def download_dataset(name: str):
     url = urls[name]
     target_path = paths[name]
     handle = handles[name]
+    output_dir = str(target_path / "raw")
 
     print(f"Scaricando il dataset '{name}' da Kaggle...")
-
-    # FIX: Removed 'unzip=True' and changed 'path' to 'output_dir'
-    kagglehub.dataset_download(handle, output_dir=target_path + "/raw")
-
+    kagglehub.dataset_download(handle, output_dir=output_dir)
     print(f"Dataset '{name}' scaricato e salvato in '{target_path}/raw'.")
 
 
@@ -49,10 +52,9 @@ if __name__ == "__main__":
         "--dataset",
         type=str,
         choices=list(urls.keys())
-        + ["all"],  # Limita le scelte per evitare errori di battitura
-        # Se non scrivi nulla nel terminale termina con un messaggio chiaro che mostra le opzioni disponibili
+        + ["all"], 
         help=f"Scegli quale dataset scaricare: {list(urls.keys())} oppure 'all' per scaricarli tutti",
-        required=True,  # Rendi questo argomento obbligatorio
+        required=True,
     )
 
     args = parser.parse_args()

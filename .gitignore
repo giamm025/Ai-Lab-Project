@@ -13,15 +13,7 @@ requirements.txt
 .ipynb_checkpoints/
 
 # 3. Dati Grezzi ed Estratti (FONDAMENTALE: Ignora i video e gli array!)
-# Ignoriamo il contenuto delle cartelle, ma manteniamo le cartelle stesse
-datasets/WLASL/data/raw/*
-!datasets/WLASL/data/raw/.gitkeep
-datasets/WLASL/data/processed/*
-!datasets/WLASL/data/processed/.gitkeep
-datasets/WLASL/data/target_videos/*
-!datasets/WLASL/data/target_videos/.gitkeep
-datasets/WLASL/data/WLASL_v0.3.json
-
+# Conserviamo solo le cartelle principali dei dataset (grazie ai .gitkeep)
 datasets/*/*
 !datasets/*/.gitkeep
 

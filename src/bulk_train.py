@@ -1,20 +1,18 @@
 import subprocess
 import re
 import sys
+import os
 
 # ==========================================
 # COSTANTI DI CONFIGURAZIONE
 # ==========================================
-N_RUNS = 3  # Quante volte ripetere l'addestramento (N)
-M_EPOCHS = 20  # Numero di epoche per ogni addestramento (M)
+N_RUNS = 1  # Quante volte ripetere l'addestramento (N)
 MODALITA_LIST = ["SOLO_MANI", "MANI_VOLTO"]  # Entrambe le modalità da testare
 
 
 def main():
     print("=====================================================")
-    print(
-        f"🚀 INIZIO BULK TRAINING : {N_RUNS} run da {M_EPOCHS} epoche per ogni modalità"
-    )
+    print(f"🚀 INIZIO BULK TRAINING : {N_RUNS} run per ogni modalità")
     print(f"Modalità in test: {', '.join(MODALITA_LIST)}")
     print("=====================================================\n")
 
@@ -28,19 +26,29 @@ def main():
         for run in range(1, N_RUNS + 1):
             print(f"🔄 [{mod}] Esecuzione Addestramento {run}/{N_RUNS} in corso...")
 
-            # Lancia train.py come sottoprocesso usando lo stesso eseguibile Python (quello dell'ambiente virtuale)
+            # Assicuriamoci che python trovi config.py impostando il PYTHONPATH
+            env = os.environ.copy()
+            env["PYTHONPATH"] = os.path.abspath(".")
+
+            # Forza l'output UTF-8 per il processo figlio così scriverà le emoji senza fare crash
+            env["PYTHONIOENCODING"] = "utf-8"
+
+            # Lancia train.py aggiornato dalla nuova cartella
             cmd = [
                 sys.executable,
-                "train.py",
+                os.path.join("neural-network", "train.py"),
                 "--modalita",
                 mod,
-                "--epochs",
-                str(M_EPOCHS),
             ]
 
             # Use errors="replace" so we don't crash when reading problematic characters
             process = subprocess.run(
-                cmd, capture_output=True, text=True, encoding="utf-8", errors="replace"
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=env,
             )
 
             if process.returncode != 0:

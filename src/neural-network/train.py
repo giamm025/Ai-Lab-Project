@@ -33,9 +33,22 @@ parser.add_argument(
     help="Scegli se usare i 126 keypoints (SOLO_MANI) o tutti i 1530 keypoints (MANI_VOLTO)",
 )
 
+parser.add_argument(
+    "--seed",
+    type=int,
+    default=42,
+    help="Seme per la riproducibilità (A/B testing)",
+)
+
 # Leggo cosa ha scritto l'utente nel terminale
 args = parser.parse_args()
 MODALITA = args.modalita
+SEED = args.seed
+
+# Fissa il seed per la riproducibilità (A/B testing)
+torch.manual_seed(SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(SEED)
 
 # Stampo un messaggio chiaro per confermare la modalità
 print(f"\n⚙️  CONFIGURAZIONE AVVIATA: Modalità {MODALITA}")

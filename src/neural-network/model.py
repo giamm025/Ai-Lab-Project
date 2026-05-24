@@ -74,8 +74,9 @@ if __name__ == "__main__":
     num_classes = (
         5  # perche ora usiamo solo 5 parole (hello, book, computer, deaf, fine)
     )
-    hidden_size = 64  # la grandeza della memoria della LSTM. Per ora mettiamo 64 neuroni di memoria interna (Piu è grande, più la rete può ricordare, ma più è difficile da addestrare)
-
+    # hidden_size = 64  # la grandeza della memoria della LSTM. Per ora mettiamo 64 neuroni di memoria interna (Piu è grande, più la rete può ricordare, ma più è difficile da addestrare)
+    hidden_size = 128 # proviamo a raddoppiare la memoria interna della LSTM per vedere se migliora le prestazioni (a costo di tempi di addestramento più lunghi)
+    # hidden_size = 256 # proviamo a raddoppiare ancora la memoria interna della LSTM per vedere se migliora le prestazioni (a costo di tempi di addestramento più lunghi)
     # --------------------- SOLO MANI ---------------------
 
     # creiamo un tensore fittizio (pieno di numeri casuali) tanto per vedere se la rete riesce a processarlo senza errori

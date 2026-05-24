@@ -2,6 +2,7 @@ import subprocess
 import re
 import sys
 import os
+import random
 
 # ==========================================
 # COSTANTI DI CONFIGURAZIONE
@@ -9,11 +10,15 @@ import os
 N_RUNS = 10  # Quante volte ripetere l'addestramento (N)
 MODALITA_LIST = ["SOLO_MANI", "MANI_VOLTO"]  # Entrambe le modalità da testare
 
+# Generiamo N_RUNS seed casuali una sola volta
+SEEDS = [random.randint(1, 10000) for _ in range(N_RUNS)]
+
 
 def main():
     print("=====================================================")
     print(f"🚀 INIZIO BULK TRAINING : {N_RUNS} run per ogni modalità")
     print(f"Modalità in test: {', '.join(MODALITA_LIST)}")
+    print(f"Seeds scelti per le run: {SEEDS}")
     print("=====================================================\n")
 
     results = {mod: [] for mod in MODALITA_LIST}
@@ -23,8 +28,12 @@ def main():
         print(f"🔍 TESTANDO LA MODALITÀ: {mod}")
         print(f"=====================================================\n")
 
-        for run in range(1, N_RUNS + 1):
-            print(f"🔄 [{mod}] Esecuzione Addestramento {run}/{N_RUNS} in corso...")
+        for run_idx in range(N_RUNS):
+            run = run_idx + 1
+            seed = SEEDS[run_idx]
+            print(
+                f"🔄 [{mod}] Esecuzione Addestramento {run}/{N_RUNS} (Seed: {seed}) in corso..."
+            )
 
             # Assicuriamoci che python trovi config.py impostando il PYTHONPATH
             env = os.environ.copy()
@@ -39,6 +48,8 @@ def main():
                 os.path.join("neural-network", "train.py"),
                 "--modalita",
                 mod,
+                "--seed",
+                str(seed),
             ]
 
             # Use errors="replace" so we don't crash when reading problematic characters

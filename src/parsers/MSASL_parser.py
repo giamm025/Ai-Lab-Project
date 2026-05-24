@@ -31,7 +31,6 @@ def parse_msasl():
 
     video_creati = 0
     video_persi = 0
-
     word_counts = {word: 0 for word in TARGET_WORDS}
     
     # processiamo tutti e 3 i file JSON (Train, Val, Test)
@@ -109,7 +108,7 @@ def parse_msasl():
 def download_youtube_video(url, output_path):
 
     ydl_opts = {
-        'format': 'worstvideo[ext=mp4]',
+        'format': 'bestvideo[height<=480][ext=mp4]',
         'outtmpl': output_path,
         'quiet': True,
         'no_warnings': True

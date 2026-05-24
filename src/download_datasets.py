@@ -51,8 +51,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dataset",
         type=str,
-        choices=list(urls.keys())
-        + ["all"], 
+        choices=list(urls.keys()) + ["all"],
         help=f"Scegli quale dataset scaricare: {list(urls.keys())} oppure 'all' per scaricarli tutti",
         required=True,
     )

@@ -6,7 +6,7 @@ import os
 # ==========================================
 # COSTANTI DI CONFIGURAZIONE
 # ==========================================
-N_RUNS = 1  # Quante volte ripetere l'addestramento (N)
+N_RUNS = 10  # Quante volte ripetere l'addestramento (N)
 MODALITA_LIST = ["SOLO_MANI", "MANI_VOLTO"]  # Entrambe le modalità da testare
 
 
@@ -117,6 +117,23 @@ def main():
         print(f"  🎯 MEDIA TEST ACCURACY  : {avg_test:.4f}")
 
     print("\n=====================================================")
+
+    try:
+        from playsound import playsound
+
+        sound_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", "marimba_bloop.mp3"
+        )
+        if os.path.exists(sound_path):
+            playsound(sound_path)
+        else:
+            print(f"Sound file not found at {sound_path}")
+    except ImportError:
+        print(
+            "\nplaysound module not installed. Run 'pip install playsound==1.2.2' to hear the completion sound."
+        )
+    except Exception as e:
+        print(f"\nCould not play sound: {e}")
 
 
 if __name__ == "__main__":

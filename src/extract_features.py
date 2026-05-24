@@ -1,7 +1,12 @@
 import os
+import sys
 import cv2
 import mediapipe as mp
 import numpy as np
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)                
+sys.path.append(parent_dir)   
 
 from config import PROCESSED_DIR, RAW_DIR, LABEL_MAP
 

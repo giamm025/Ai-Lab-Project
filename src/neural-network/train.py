@@ -1,7 +1,20 @@
+import os
+import sys
 import torch
 from torch.utils.data import DataLoader, random_split
 import torchmetrics
 import argparse
+
+# Importo le classi e le costanti
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)                
+sys.path.append(parent_dir)   
+
+from config import TARGET_WORDS, RAW_DIR, DATASETS_DIR
+
+from config import PROCESSED_DIR, TARGET_WORDS
+from dataset import SignLanguageDataset
+from model import SignLanguageLSTM
 
 # Inizializzo il parser degli argomenti
 parser = argparse.ArgumentParser(description="Addestra il modello di Riconoscimento LIS.")
@@ -21,11 +34,6 @@ MODALITA = args.modalita
 
 # Stampo un messaggio chiaro per confermare la modalità
 print(f"\n⚙️  CONFIGURAZIONE AVVIATA: Modalità {MODALITA}")
-
-# Importo le classi e le costanti
-from config import PROCESSED_DIR, TARGET_WORDS
-from dataset import SignLanguageDataset
-from model import SignLanguageLSTM
 
 '''
 1. PREPARARE IL DATASET

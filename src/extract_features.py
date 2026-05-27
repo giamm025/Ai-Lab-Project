@@ -73,26 +73,31 @@ NMM_LIPS = [
     415, 310, 311, 312, 13, 82, 81, 80, 191, 78,
 ]  # 40 landmark
 
-# OCCHIO SINISTRO — 16 punti (contorno palpebrale)
-# Utile per distinguere intensità, negazione e marcatori aspettuali.
+# OCCHIO SINISTRO (dell'inquadrato) — 16 punti (contorno palpebrale)
+# "Sinistra/Destra" in MediaPipe si riferisce SEMPRE alla prospettiva del soggetto ripreso,
+# NON alla prospettiva di chi guarda il monitor.
+# Verificato da: face_mesh_connections.py → FACEMESH_LEFT_EYE
 NMM_LEFT_EYE = [
-    33, 7, 163, 144, 145, 153, 154, 155,
-    133, 173, 157, 158, 159, 160, 161, 246,
+    249, 263, 362, 373, 374, 380, 381, 382,
+    384, 385, 386, 387, 388, 390, 398, 466,
 ]  # 16 landmark
 
-# OCCHIO DESTRO — 16 punti (contorno palpebrale)
+# OCCHIO DESTRO (dell'inquadrato) — 16 punti (contorno palpebrale)
+# Verificato da: face_mesh_connections.py → FACEMESH_RIGHT_EYE
 NMM_RIGHT_EYE = [
-    362, 382, 381, 380, 374, 373, 390, 249,
-    263, 466, 388, 387, 386, 385, 384, 398,
+    7, 33, 133, 144, 145, 153, 154, 155,
+    157, 158, 159, 160, 161, 163, 173, 246,
 ]  # 16 landmark
 
-# SOPRACCIGLIO SINISTRO — 10 punti
+# SOPRACCIGLIO SINISTRO (dell'inquadrato) — 10 punti
 # Le sopracciglia sono marcatori grammaticali primari (domanda sì/no,
 # negazione, topics). Sono il motivo principale per includere il volto.
-NMM_LEFT_EYEBROW = [276, 283, 282, 295, 285, 300, 293, 334, 296, 336]  # 10 landmark
+# Verificato da: face_mesh_connections.py → FACEMESH_LEFT_EYEBROW
+NMM_LEFT_EYEBROW = [276, 282, 283, 285, 293, 295, 296, 300, 334, 336]  # 10 landmark
 
-# SOPRACCIGLIO DESTRO — 10 punti
-NMM_RIGHT_EYEBROW = [46, 53, 52, 65, 55, 70, 63, 105, 66, 107]  # 10 landmark
+# SOPRACCIGLIO DESTRO (dell'inquadrato) — 10 punti
+# Verificato da: face_mesh_connections.py → FACEMESH_RIGHT_EYEBROW
+NMM_RIGHT_EYEBROW = [46, 52, 53, 55, 63, 65, 66, 70, 105, 107]  # 10 landmark
 
 # Indice unico, ordinato, senza duplicati — usato per il filtraggio
 NMM_FACE_INDICES = sorted(set(

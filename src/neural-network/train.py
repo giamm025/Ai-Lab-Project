@@ -196,38 +196,75 @@ def train_loop(train_dataloader, model, loss_fn, optimizer):
 """
 7. TEST LOOP
 """
-
-
-def test_loop(test_dataloader, model):
+def test_loop(test_dataloader, model, loss_fn):
     model.eval()  # Metto il modello in modalità valutazione
+    test_loss = 0.0 # Variabile per accumulare la loss
+    
     with torch.no_grad():  # Spegne i gradienti
         for x, y in test_dataloader:
 
             # Applico lo stesso taglio anche in fase di test
             if MODALITA == "SOLO_MANI":
-                x = x[:, :, :126]  # [batch, seq_len, 402] → [batch, seq_len, 126]
+                x = x[:, :, :126]  
 
             x = x.to(device)
             y = y.to(device)
 
             pred = model(x)
+            
+            # Calcolo la loss per questo batch
+            test_loss += loss_fn(pred, y).item()
             metric(pred, y)
 
+        # Calcolo le medie finali
+        test_loss /= len(test_dataloader)
         acc = metric.compute()
-        print(f"*** ACCURATEZZA DI TEST FINALE: {acc:.4f} ***\n")
+        
+        print(f"*** TEST FINALE -> Loss: {test_loss:.4f} | Accuratezza: {acc:.4f} ***\n")
         metric.reset()
-
+        
+        # Ritorniamo sia la loss (per l'early stopping) che l'accuracy
+        return test_loss, acc.item()
 
 """
 8. ESECUZIONE
 """
 print(f"Inizio addestramento in modalità: {MODALITA}")
+
+# --- CONFIGURAZIONE EARLY STOPPING ---
+patience = 5  # Quante epoche aspettare senza miglioramenti prima di fermarsi
+epochs_no_improve = 0
+best_test_loss = float('inf') # Inizializziamo a infinito in modo che la prima loss sia sicuramente minore
+model_save_path = os.path.join(parent_dir, f"best_model_{MODALITA}.pth")
+# -------------------------------------
+
 for epoch in range(epochs):
     print(f"=============================")
     print(f" EPOCH: {epoch + 1}/{epochs}")
     print(f"=============================")
 
     train_loop(train_dataloader, model, loss_fn, optimizer)
-    test_loop(test_dataloader, model)
+    
+    # Ora il test_loop richiede anche la loss_fn
+    current_test_loss, current_test_acc = test_loop(test_dataloader, model, loss_fn)
+    
+    # Logica di Early Stopping e Salvataggio
+    if current_test_loss < best_test_loss:
+        # Se la loss migliora, aggiorniamo il record e azzeriamo il contatore
+        best_test_loss = current_test_loss
+        epochs_no_improve = 0
+        
+        # Salviamo i pesi
+        torch.save(model.state_dict(), model_save_path)
+        print(f"💾 Modello salvato! Nuova migliore Loss: {best_test_loss:.4f} (Acc: {current_test_acc:.4f})\n")
+    else:
+        # Se la loss NON migliora, incrementiamo il contatore
+        epochs_no_improve += 1
+        print(f"⚠️ Nessun miglioramento della Loss per {epochs_no_improve} epoche consecutive.\n")
+        
+        if epochs_no_improve >= patience:
+            print("🛑 EARLY STOPPING ATTIVATO: Il modello ha smesso di imparare.")
+            print(f"Il modello migliore è stato salvato all'epoca {epoch + 1 - patience} con Loss: {best_test_loss:.4f}")
+            break # Interrompe il ciclo for delle epoche
 
 print("Addestramento completato! 🎉")

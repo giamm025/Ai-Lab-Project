@@ -22,7 +22,7 @@ def process_video(video_path, save_path):
     cap = cv2.VideoCapture(video_path)
 
     # prepariamo una lista vuota dove salvare le coordinate di ogni frame. ogni elemento di questa lista sarà un array
-    # di 1530 elementi. Ogni elemento è una lista di coordinate  [x, y, z] di cui 63 per MANO SX, 63 per MANO DX e 1404 per VOLTO
+    # di 402 elementi: 63 per MANO SX + 63 per MANO DX + 276 per VOLTO FILTRATO (solo labbra, occhi, sopracciglia)
     frames_keypoints = []
 
     # avviamo il modello Holistic di MediaPipe (il un modello pre-addestrato per riconoscere le coordinate di mani, volto e corpo)
@@ -58,7 +58,52 @@ def process_video(video_path, save_path):
     np.save(save_path, numpy_data)
 
 
-# funzione per convertire i risultati di MediaPipe in un array di 1530 numeri (di cui 63*3 MANO SX + 63*3 MANO DX + 468*3 VOLTO)
+# ---------------------------------------------------------------------------
+# INDICI MEDIAPIPE FACE MESH: solo i marcatori linguisticamente rilevanti
+# (NMM = Non-Manual Markers) per la LIS e le lingue dei segni in generale.
+# Fonte: topologia ufficiale MediaPipe Face Mesh (468 landmark totali).
+# ---------------------------------------------------------------------------
+
+# LABBRA — 40 punti (contorno esterno + interno)
+# Coprono la forma della bocca: apertura, arrotondamento, morfemi orali.
+NMM_LIPS = [
+    61, 146, 91, 181, 84, 17, 314, 405, 321, 375,
+    291, 308, 324, 318, 402, 317, 14, 87, 178, 88,
+    95, 185, 40, 39, 37, 0, 267, 269, 270, 409,
+    415, 310, 311, 312, 13, 82, 81, 80, 191, 78,
+]  # 40 landmark
+
+# OCCHIO SINISTRO — 16 punti (contorno palpebrale)
+# Utile per distinguere intensità, negazione e marcatori aspettuali.
+NMM_LEFT_EYE = [
+    33, 7, 163, 144, 145, 153, 154, 155,
+    133, 173, 157, 158, 159, 160, 161, 246,
+]  # 16 landmark
+
+# OCCHIO DESTRO — 16 punti (contorno palpebrale)
+NMM_RIGHT_EYE = [
+    362, 382, 381, 380, 374, 373, 390, 249,
+    263, 466, 388, 387, 386, 385, 384, 398,
+]  # 16 landmark
+
+# SOPRACCIGLIO SINISTRO — 10 punti
+# Le sopracciglia sono marcatori grammaticali primari (domanda sì/no,
+# negazione, topics). Sono il motivo principale per includere il volto.
+NMM_LEFT_EYEBROW = [276, 283, 282, 295, 285, 300, 293, 334, 296, 336]  # 10 landmark
+
+# SOPRACCIGLIO DESTRO — 10 punti
+NMM_RIGHT_EYEBROW = [46, 53, 52, 65, 55, 70, 63, 105, 66, 107]  # 10 landmark
+
+# Indice unico, ordinato, senza duplicati — usato per il filtraggio
+NMM_FACE_INDICES = sorted(set(
+    NMM_LIPS + NMM_LEFT_EYE + NMM_RIGHT_EYE +
+    NMM_LEFT_EYEBROW + NMM_RIGHT_EYEBROW
+))
+# Totale: 92 landmark × 3 coordinate = 276 valori per frame
+
+
+# funzione per convertire i risultati di MediaPipe in un array di 402 numeri
+# (63 MANO SX + 63 MANO DX + 276 VOLTO FILTRATO)
 def convert_keypoints(mp_keypoints):
 
     # estraiamo i keypoints per ogni parte del corpo
@@ -84,16 +129,17 @@ def convert_keypoints(mp_keypoints):
     else:
         rh = np.zeros(21 * 3)
 
-    # formiamo la lista di coordinare per il VOLTO
-    temp_list = []
+    # formiamo la lista di coordinate per il VOLTO FILTRATO (solo NMM rilevanti)
+    # invece di scorrere tutti i 468 landmark, accediamo solo agli indici in NMM_FACE_INDICES
     if face:
-        for res in face.landmark:
-            temp_list.append([res.x, res.y, res.z])
-        face = np.array(temp_list).flatten()
+        all_landmarks = face.landmark
+        filtered = [[all_landmarks[i].x, all_landmarks[i].y, all_landmarks[i].z]
+                    for i in NMM_FACE_INDICES]
+        face_arr = np.array(filtered).flatten()  # 92 * 3 = 276 valori
     else:
-        face = np.zeros(468 * 3)
+        face_arr = np.zeros(len(NMM_FACE_INDICES) * 3)  # 276 zeri
 
-    return np.concatenate([lh, rh, face])
+    return np.concatenate([lh, rh, face_arr])
 
 
 # ------------------------------------------------------ MAIN ------------------------------------------------------

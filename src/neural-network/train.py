@@ -40,6 +40,7 @@ parser.add_argument(
     help="Seme per la riproducibilità (A/B testing)",
 )
 
+
 # Leggo cosa ha scritto l'utente nel terminale
 args = parser.parse_args()
 MODALITA = args.modalita
@@ -88,10 +89,28 @@ print(f"Using {device} device")
 3.5 CONFIGURAZIONE A/B TEST (Tramite Terminale)
 """
 
+# -----------------------------------------------------------------------
+# DIMENSIONI DEL VETTORE DI INPUT (per frame):
+#
+#   SOLO_MANI  →  126 valori
+#                 └─ 21 land. mano sx × 3  =  63
+#                 └─ 21 land. mano dx × 3  =  63
+#
+#   MANI_VOLTO →  402 valori
+#                 └─ 21 land. mano sx × 3  =  63
+#                 └─ 21 land. mano dx × 3  =  63
+#                 └─ 92 land. volto × 3    = 276  (solo labbra + occhi + sopracciglia)
+#                    ├─ labbra:               40 land.
+#                    ├─ occhio sinistro:       16 land.
+#                    ├─ occhio destro:         16 land.
+#                    ├─ sopracciglio sx:       10 land.
+#                    └─ sopracciglio dx:       10 land.
+# -----------------------------------------------------------------------
+
 if MODALITA == "SOLO_MANI":
-    input_size = 126
+    input_size = 126  # 63 + 63
 else:
-    input_size = 1530
+    input_size = 402  # 63 + 63 + 276
 
 """
 4. DEFINIZIONE DEL MODELLO
@@ -143,9 +162,11 @@ def train_loop(train_dataloader, model, loss_fn, optimizer):
     for batch, (x, y) in enumerate(train_dataloader):
 
         # --- TAGLIO DEL TENSORE PER L'A/B TEST ---
+        # Il tensore x ha sempre forma [batch, seq_len, 402] (shape salvata da extract_features.py).
+        # In SOLO_MANI prendiamo solo le prime 126 colonne (mano sx + mano dx).
+        # In MANI_VOLTO usiamo tutte le 402 colonne: nessun taglio necessario.
         if MODALITA == "SOLO_MANI":
-            # x ha forma [batch, seq_len, 1530]. Prendo solo tutte le righe e le prime 126 colonne
-            x = x[:, :, :126]
+            x = x[:, :, :126]  # [batch, seq_len, 402] → [batch, seq_len, 126]
 
         x = x.to(device)
         y = y.to(device)
@@ -184,7 +205,7 @@ def test_loop(test_dataloader, model):
 
             # Applico lo stesso taglio anche in fase di test
             if MODALITA == "SOLO_MANI":
-                x = x[:, :, :126]
+                x = x[:, :, :126]  # [batch, seq_len, 402] → [batch, seq_len, 126]
 
             x = x.to(device)
             y = y.to(device)

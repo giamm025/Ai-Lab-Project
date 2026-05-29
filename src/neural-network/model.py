@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+
 """
 Come abbiamo visto a lezione dovremo implementare due metodi principali:
 
@@ -21,7 +22,7 @@ class SignLanguageLSTM(nn.Module):
     #                (Es. 64 o 128 neuroni. Piu è grande, più la rete può ricordare, ma più è difficile da addestrare)
     # - num_classes: il numero di canali di uscita... cioe: quali sono le soluzioni possibili?
     #                (nel nostro caso è il numero di parole che vogliamo riconoscere, cioè 5)
-    def __init__(self, input_size, hidden_size, num_classes):
+    def __init__(self, input_size, hidden_size, num_classes, num_layers=1):
 
         super().__init__()
 
@@ -30,6 +31,7 @@ class SignLanguageLSTM(nn.Module):
         self.lstm = nn.LSTM(
             input_size=input_size,
             hidden_size=hidden_size,
+            num_layers=num_layers,
             num_layers=1,
             batch_first=True,
         )  # serve a specificare l'ordine dei numeri nel tensore di input.
@@ -48,9 +50,9 @@ class SignLanguageLSTM(nn.Module):
         # in questo modo la LSTM non spreca tempo a processare i frame di padding (tutti zeri)
         packed = pack_padded_sequence(
             x,
-            lengths.cpu(),       # pack_padded_sequence vuole i lengths sulla CPU, non sulla GPU
+            lengths.cpu(),  # pack_padded_sequence vuole i lengths sulla CPU, non sulla GPU
             batch_first=True,
-            enforce_sorted=False # non è necessario che il batch sia ordinato per lunghezza
+            enforce_sorted=False,  # non è necessario che il batch sia ordinato per lunghezza
         )
 
         # passiamo la sequenza impacchettata alla LSTM
@@ -79,7 +81,7 @@ if __name__ == "__main__":
         5  # perche ora usiamo solo 5 parole (hello, book, computer, deaf, fine)
     )
     # hidden_size = 64  # la grandeza della memoria della LSTM. Per ora mettiamo 64 neuroni di memoria interna (Piu è grande, più la rete può ricordare, ma più è difficile da addestrare)
-    hidden_size = 128 # proviamo a raddoppiare la memoria interna della LSTM per vedere se migliora le prestazioni (a costo di tempi di addestramento più lunghi)
+    hidden_size = 128  # proviamo a raddoppiare la memoria interna della LSTM per vedere se migliora le prestazioni (a costo di tempi di addestramento più lunghi)
     # hidden_size = 256 # proviamo a raddoppiare ancora la memoria interna della LSTM per vedere se migliora le prestazioni (a costo di tempi di addestramento più lunghi)
     # --------------------- SOLO MANI ---------------------
 

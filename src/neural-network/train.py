@@ -21,24 +21,71 @@ parser = argparse.ArgumentParser(
     description="Addestra il modello di Riconoscimento LIS."
 )
 
-parser.add_argument(
-    "--modalita",
-    type=str,
-    choices=["SOLO_MANI", "MANI_VOLTO"],
-    default="MANI_VOLTO",
-    help="Scegli se usare i 126 keypoints (SOLO_MANI) o i 402 keypoints (MANI_VOLTO)",
-)
+arg_configs = [
+    {
+        "name": "--modalita",
+        "type": str,
+        "choices": ["SOLO_MANI", "MANI_VOLTO"],
+        "default": "MANI_VOLTO",
+        "help": "Scegli se usare i 126 keypoints (SOLO_MANI) o i 402 keypoints (MANI_VOLTO)",
+    },
+    {
+        "name": "--seed",
+        "type": int,
+        "default": 42,
+        "help": "Seme per la riproducibilità (default: 42)",
+    },
+    {
+        "name": "--epochs",
+        "type": int,
+        "default": 200,
+        "help": "Numero di epoche per l'addestramento (default: 200)",
+    },
+    {
+        "name": "--batch_size",
+        "type": int,
+        "default": 8,
+        "help": "Dimensione del batch per l'addestramento (default: 8)",
+    },
+    {
+        "name": "--patience",
+        "type": int,
+        "default": 10,
+        "help": "Numero di epoche senza miglioramento prima dell'early stopping (default: 10)",
+    },
+    {
+        "name": "--learning_rate",
+        "type": float,
+        "default": 1e-3,
+        "help": "Learning rate per l'ottimizzatore (default: 1e-3)",
+    },
+    {
+        "name": "--hidden_size",
+        "type": int,
+        "default": 64,
+        "help": "Dimensione dell'hidden state della LSTM (default: 64)",
+    },
+    {
+        "name": "--num_layers",
+        "type": int,
+        "default": 1,
+        "help": "Numero di layer della LSTM (default: 1)",
+    },
+]
 
-parser.add_argument(
-    "--seed",
-    type=int,
-    default=42,
-    help="Seme per la riproducibilità (default: 42)",
-)
+for arg in arg_configs:
+    name = arg.pop("name")
+    parser.add_argument(name, **arg)
 
 args = parser.parse_args()
 MODALITA = args.modalita
 SEED = args.seed
+EPOCHS = args.epochs
+BATCH_SIZE = args.batch_size
+PATIENCE = args.patience
+LEARNING_RATE = args.learning_rate
+HIDDEN_SIZE = args.hidden_size
+NUM_LAYERS = args.num_layers
 
 # Fissa il seed per garantire che ogni run con lo stesso seed produca gli stessi risultati.
 # Fondamentale per l'A/B testing: senza seed fisso non si può sapere se un miglioramento
@@ -63,7 +110,7 @@ training_data, test_data = random_split(full_dataset, [train_size, test_size])
 2. CREARE I DATALOADER
 """
 # Batch size piccola (es. 8) perché i tensori video pesano in memoria
-batch_size = 8
+batch_size = BATCH_SIZE
 train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
@@ -101,26 +148,30 @@ print(f"Using {device} device")
 # -----------------------------------------------------------------------
 
 if MODALITA == "SOLO_MANI":
-    input_size = 126   # 63 + 63
+    input_size = 126  # 63 + 63
 else:
-    input_size = 402   # 63 + 63 + 276
+    input_size = 402  # 63 + 63 + 276
 
 """
 4. DEFINIZIONE DEL MODELLO
 """
-hidden_size = 64
+hidden_size = HIDDEN_SIZE
+num_layers = NUM_LAYERS
 num_classes = len(TARGET_WORDS)
 
 model = SignLanguageLSTM(
-    input_size=input_size, hidden_size=hidden_size, num_classes=num_classes
+    input_size=input_size,
+    hidden_size=hidden_size,
+    num_classes=num_classes,
+    num_layers=num_layers,
 ).to(device)
 print(model)
 
 """
 5. IPERPARAMETRI, LOSS FUNCTION E OPTIMIZER
 """
-epochs = 200
-learning_rate = 1e-3
+epochs = EPOCHS
+learning_rate = LEARNING_RATE
 
 loss_fn = torch.nn.CrossEntropyLoss()
 
@@ -157,7 +208,7 @@ def train_loop(train_dataloader, model, loss_fn, optimizer):
         # In SOLO_MANI prendiamo solo le prime 126 colonne (mano sx + mano dx).
         # In MANI_VOLTO usiamo tutte le 402 colonne: nessun taglio necessario.
         if MODALITA == "SOLO_MANI":
-            x = x[:, :, :126]   # [batch, seq_len, 402] → [batch, seq_len, 126]
+            x = x[:, :, :126]  # [batch, seq_len, 402] → [batch, seq_len, 126]
 
         x = x.to(device)
         y = y.to(device)
@@ -175,7 +226,9 @@ def train_loop(train_dataloader, model, loss_fn, optimizer):
         if batch % 5 == 0:
             loss_v = loss.item()
             acc = metric(pred, y)
-            print(f"Loss: {loss_v:.4f} | Batch: {batch + 1} | Accuratezza batch: {acc:.4f}")
+            print(
+                f"Loss: {loss_v:.4f} | Batch: {batch + 1} | Accuratezza batch: {acc:.4f}"
+            )
 
     acc = metric.compute()
     print(f"\n---> Accuratezza Finale Epoca (Train): {acc:.4f}\n")
@@ -198,7 +251,7 @@ def test_loop(test_dataloader, model, loss_fn):
 
             # stesso taglio applicato anche in fase di test
             if MODALITA == "SOLO_MANI":
-                x = x[:, :, :126]   # [batch, seq_len, 402] → [batch, seq_len, 126]
+                x = x[:, :, :126]  # [batch, seq_len, 402] → [batch, seq_len, 126]
 
             x = x.to(device)
             y = y.to(device)
@@ -228,9 +281,9 @@ print(f"Inizio addestramento in modalità: {MODALITA}")
 # --- CONFIGURAZIONE EARLY STOPPING ---
 # Se la test loss non migliora per `patience` epoche consecutive, l'addestramento
 # si ferma automaticamente per evitare overfitting e sprecare tempo di calcolo.
-patience = 15
+patience = PATIENCE
 epochs_no_improve = 0
-best_test_loss = float('inf')
+best_test_loss = float("inf")
 model_save_path = os.path.join(current_dir, f"best_model_{MODALITA}.pth")
 # -------------------------------------
 
@@ -248,11 +301,15 @@ for epoch in range(epochs):
         best_test_loss = current_test_loss
         epochs_no_improve = 0
         torch.save(model.state_dict(), model_save_path)
-        print(f"💾 Modello salvato! Nuova migliore Loss: {best_test_loss:.4f} (Acc: {current_test_acc:.4f})\n")
+        print(
+            f"💾 Modello salvato! Nuova migliore Loss: {best_test_loss:.4f} (Acc: {current_test_acc:.4f})\n"
+        )
     else:
         # La loss NON è migliorata: incrementiamo il contatore
         epochs_no_improve += 1
-        print(f"⚠️  Nessun miglioramento per {epochs_no_improve}/{patience} epoche consecutive.\n")
+        print(
+            f"⚠️  Nessun miglioramento per {epochs_no_improve}/{patience} epoche consecutive.\n"
+        )
 
         if epochs_no_improve >= patience:
             print("🛑 EARLY STOPPING ATTIVATO: il modello ha smesso di imparare.")

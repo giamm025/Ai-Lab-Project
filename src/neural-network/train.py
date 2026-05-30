@@ -4,15 +4,15 @@ import torch
 from torch.utils.data import DataLoader, random_split
 import torchmetrics
 import argparse
+import csv
 
-# Importo le classi e le costanti
 current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.append(parent_dir)
+src_dir = os.path.dirname(current_dir)
+root_dir = os.path.dirname(src_dir)
 
-from config import TARGET_WORDS, RAW_DIR, DATASETS_DIR
+sys.path.append(src_dir)
 
-from config import PROCESSED_DIR, TARGET_WORDS
+from config import TARGET_WORDS, PROCESSED_DIR
 from dataset import SignLanguageDataset
 from model import SignLanguageLSTM
 
@@ -154,13 +154,11 @@ metric = torchmetrics.Accuracy(task="multiclass", num_classes=num_classes).to(de
 """
 6. TRAINING LOOP
 """
-
-
 def train_loop(train_dataloader, model, loss_fn, optimizer):
-    model.train()  # Metto il modello in modalità addestramento
-
+    model.train()   # Metto il modello in modalità addestramento
+    total_loss = 0  # Variabile per accumulare la loss totale dell'epoca
     for batch, (x, y) in enumerate(train_dataloader):
-
+        
         # --- TAGLIO DEL TENSORE PER L'A/B TEST ---
         # Il tensore x ha sempre forma [batch, seq_len, 402] (shape salvata da extract_features.py).
         # In SOLO_MANI prendiamo solo le prime 126 colonne (mano sx + mano dx).
@@ -180,18 +178,16 @@ def train_loop(train_dataloader, model, loss_fn, optimizer):
         optimizer.step()
         optimizer.zero_grad()
 
-        # Stampo i progressi (uso % 5 dato che ho meno batch rispetto a MNIST)
-        if batch % 5 == 0:
-            loss_v = loss.item()
-            acc = metric(pred, y)
-            print(
-                f"Loss: {loss_v:.4f} | Batch: {batch + 1} | Accuratezza batch: {acc:.4f}"
-            )
+        # Accumulo la loss per il calcolo della media a fine epoca  
+        total_loss += loss.item()
+        metric(pred, y)
 
-    acc = metric.compute()
-    print(f"\n---> Accuratezza Finale Epoca (Train): {acc:.4f}\n")
+    epoch_acc = metric.compute().item()
+    epoch_loss = total_loss / len(train_dataloader)
+    
+    print(f'---> Train Loss: {epoch_loss:.4f} | Train Acc: {epoch_acc:.4f}')
     metric.reset()
-
+    return epoch_loss, epoch_acc
 
 """
 7. TEST LOOP
@@ -213,21 +209,48 @@ def test_loop(test_dataloader, model):
             pred = model(x)
             metric(pred, y)
 
-        acc = metric.compute()
-        print(f"*** ACCURATEZZA DI TEST FINALE: {acc:.4f} ***\n")
-        metric.reset()
-
+    epoch_acc = metric.compute().item()
+    print(f'*** TEST ACCURACY: {epoch_acc:.4f} ***\n')
+    metric.reset()
+    return epoch_acc
 
 """
-8. ESECUZIONE
+8. ESECUZIONE E SALVATAGGIO
 """
 print(f"Inizio addestramento in modalità: {MODALITA}")
+
+# Creiamo le cartelle DIRETTAMENTE NELLA ROOT
+MODELS_DIR = os.path.join(root_dir, 'models')
+os.makedirs(MODELS_DIR, exist_ok=True)
+model_save_path = os.path.join(MODELS_DIR, f"best_model_{MODALITA}.pth")
+
+RESULTS_DIR = os.path.join(root_dir, 'results')
+os.makedirs(RESULTS_DIR, exist_ok=True)
+
+history = []
+best_test_acc = 0.0
 for epoch in range(epochs):
     print(f"=============================")
     print(f" EPOCH: {epoch + 1}/{epochs}")
     print(f"=============================")
 
-    train_loop(train_dataloader, model, loss_fn, optimizer)
-    test_loop(test_dataloader, model)
+    train_loss, train_acc = train_loop(train_dataloader, model, loss_fn, optimizer)
+    test_acc = test_loop(test_dataloader, model)
+    
+    # Salviamo i dati per il grafico
+    history.append([epoch + 1, train_loss, train_acc, test_acc])
+    
+    # Salviamo il modello SOLO se ha superato il suo record personale!
+    if test_acc > best_test_acc:
+        best_test_acc = test_acc
+        torch.save(model.state_dict(), model_save_path)
+        print(f"💾 Nuovo record! Modello salvato con accuratezza: {best_test_acc:.4f}")
+
+# Salvataggio del CSV
+csv_path = os.path.join(RESULTS_DIR, f"training_history_{MODALITA}.csv")
+with open(csv_path, mode='w', newline='') as file:
+    writer = csv.writer(file)
+    writer.writerow(['Epoch', 'Train_Loss', 'Train_Acc', 'Test_Acc'])
+    writer.writerows(history)
 
 print("Addestramento completato! 🎉")

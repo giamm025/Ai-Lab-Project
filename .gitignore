@@ -18,11 +18,15 @@ datasets/*/*
 !datasets/*/.gitkeep
 data/raw/*
 data/processed/*
+data/processed-vecchio/
 
 # 4. Modelli PyTorch Addestrati (Pesano tantissimo, non vanno su Git)
 models/*.pt
 models/*.pth
 models/*.weights
+
+# 5. Log e Risultati Temporanei
+results/*.*
 
 # 5. File di Sistema (Windows/Mac)
 .DS_Store

@@ -1,4 +1,5 @@
 import os
+
 import torch
 import numpy as np
 from torch.utils.data import Dataset
@@ -65,11 +66,16 @@ class SignLanguageDataset(Dataset):
 
         # estrae l'etichetta corrispondente a questo video (es. 0 per "hello", 1 per "book", ecc.)
         label = self.labels[idx]
-        # estrae i keypoints (1530 coordinate per frame) dal file .npy
+
+        # estrae i keypoints dal file .npy
         data = np.load(filepath)
 
+        # salviamo la lunghezza REALE del video prima di aggiungere il padding
+        # ci servirà per dire alla LSTM dove finisce il video vero e iniziano gli zeri
+        real_len = data.shape[0]
+
         # --------------------------------------------------- PADDING ---------------------------------------------------
-        seq_len = data.shape[0]  # estriamo il numero di frame di questo video
+        seq_len = data.shape[0]
         padding = np.zeros(
             (self.max_frames - seq_len, data.shape[1])
         )  # crea matrici di zeri per i frame mancanti
@@ -78,11 +84,12 @@ class SignLanguageDataset(Dataset):
         )  # aggiunge gli zeri alla fine dei dati originali
         # ---------------------------------------------------------------------------------------------------------------
 
-        # converte gli array NumPy (formato Python base) in Tensori (formato PyTorch per la scheda video)
+        # converte gli array NumPy in Tensori PyTorch
         data_tensor = torch.tensor(data, dtype=torch.float32)
         label_tensor = torch.tensor(label, dtype=torch.long)
-        return data_tensor, label_tensor
+        length_tensor = torch.tensor(real_len, dtype=torch.long)
 
+        return data_tensor, label_tensor, length_tensor
 
 # --- TEST DEL CAMERIERE ---
 if __name__ == "__main__":

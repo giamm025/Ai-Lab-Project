@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 """
 Come abbiamo visto a lezione dovremo implementare due metodi principali:
@@ -21,7 +22,7 @@ class SignLanguageLSTM(nn.Module):
     #                (Es. 64 o 128 neuroni. Piu è grande, più la rete può ricordare, ma più è difficile da addestrare)
     # - num_classes: il numero di canali di uscita... cioe: quali sono le soluzioni possibili?
     #                (nel nostro caso è il numero di parole che vogliamo riconoscere, cioè 5)
-    def __init__(self, input_size, hidden_size, num_classes):
+    def __init__(self, input_size, hidden_size, num_classes, num_layers=1):
 
         super().__init__()
 
@@ -30,6 +31,7 @@ class SignLanguageLSTM(nn.Module):
         self.lstm = nn.LSTM(
             input_size=input_size,
             hidden_size=hidden_size,
+            num_layers=num_layers,
             num_layers=1,
             batch_first=True,
         )  # serve a specificare l'ordine dei numeri nel tensore di input.
@@ -42,22 +44,26 @@ class SignLanguageLSTM(nn.Module):
         self.fc = nn.Linear(hidden_size, num_classes)
 
     # questa è la funzione che viene chiamata quando passiamo i dati alla rete. Definisce il PERCORSO che fanno i dati (da x fino alla predizione).
-    def forward(self, x):
+    def forward(self, x, lengths):
 
-        # passiamo i dati alla LSTM.
-        frames, (hn, cn) = self.lstm(x)
-        # alla fine avremo:
-        # frames: contiene ciò che la LSTM ha pensato ad OGNI frame del video                 (forma: [batch_size, seq_len, hidden_size])
-        # hn (hidden state): contiene ciò che la LSTM ha pensato all'ULTIMO frame del video   (forma: [num_layers, batch_size, hidden_size])
-        # cn (cell state): contiene la "memoria a lungo termine" della LSTM. Viene utilizzata
-        #  solo internamente dalla LSTM per decidere cosa scriversi nll'hn
-        #  Al mondo esterno passiamo SEMPRE E SOLO gli appunti finali hn      (forma: [num_layers, batch_size, hidden_size])
+        # impachettiamo la sequenza per dire alla LSTM dove finisce ogni video reale
+        # in questo modo la LSTM non spreca tempo a processare i frame di padding (tutti zeri)
+        packed = pack_padded_sequence(
+            x,
+            lengths.cpu(),  # pack_padded_sequence vuole i lengths sulla CPU, non sulla GPU
+            batch_first=True,
+            enforce_sorted=False,  # non è necessario che il batch sia ordinato per lunghezza
+        )
 
-        # a noi interessa solo la decisione finale, presa dopo aver analizzato TUTTI i frame (cioè a fine video)
-        # possiamo quindi "tagliare" frames per prendere solo l'ultimo frame oppure usare direttamente la variabile hn
-        out = frames[:, -1, :]
+        # passiamo la sequenza impacchettata alla LSTM
+        # hn conterrà lo stato nascosto all'ULTIMO frame REALE di ogni video (non all'ultimo frame di padding)
+        _, (hn, _) = self.lstm(packed)
 
-        # passiamo il verdetto finale (dopo aver letto tutti i frame) al livello Lineare per ottenere la predizione
+        # hn ha forma [num_layers, batch_size, hidden_size]
+        # prendiamo l'ultimo layer (-1) per ottenere la decisione finale
+        out = hn[-1]  # forma: [batch_size, hidden_size]
+
+        # passiamo al layer lineare per ottenere le probabilità di ogni parola
         result = self.fc(out)
         return result
 
@@ -75,7 +81,7 @@ if __name__ == "__main__":
         5  # perche ora usiamo solo 5 parole (hello, book, computer, deaf, fine)
     )
     # hidden_size = 64  # la grandeza della memoria della LSTM. Per ora mettiamo 64 neuroni di memoria interna (Piu è grande, più la rete può ricordare, ma più è difficile da addestrare)
-    hidden_size = 128 # proviamo a raddoppiare la memoria interna della LSTM per vedere se migliora le prestazioni (a costo di tempi di addestramento più lunghi)
+    hidden_size = 128  # proviamo a raddoppiare la memoria interna della LSTM per vedere se migliora le prestazioni (a costo di tempi di addestramento più lunghi)
     # hidden_size = 256 # proviamo a raddoppiare ancora la memoria interna della LSTM per vedere se migliora le prestazioni (a costo di tempi di addestramento più lunghi)
     # --------------------- SOLO MANI ---------------------
 

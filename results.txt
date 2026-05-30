@@ -1,0 +1,404 @@
+python .\src\neural-network\bulk_train.py    
+=====================================================                                                                    
+🚀 INIZIO BULK TRAINING : 10 run per ogni modalità
+Modalità in test: SOLO_MANI, MANI_VOLTO
+Seeds scelti per le run: [197, 4058, 2725, 5681, 518, 7518, 8829, 7420, 4007, 5410]
+=====================================================
+
+=====================================================
+🔍 TESTANDO LA MODALITÀ: SOLO_MANI
+=====================================================
+
+🔄 [SOLO_MANI] Esecuzione Addestramento 1/10 (Seed: 197) in corso...
+  ✅ [SOLO_MANI] Run 1 completata: Loss = 1.7492 | Train Acc = 0.2292 | Test Acc = 0.2857
+
+🔄 [SOLO_MANI] Esecuzione Addestramento 2/10 (Seed: 4058) in corso...
+  ✅ [SOLO_MANI] Run 2 completata: Loss = 1.7861 | Train Acc = 0.3542 | Test Acc = 0.1786
+
+🔄 [SOLO_MANI] Esecuzione Addestramento 3/10 (Seed: 2725) in corso...
+  ✅ [SOLO_MANI] Run 3 completata: Loss = 1.7182 | Train Acc = 0.3333 | Test Acc = 0.1607
+
+🔄 [SOLO_MANI] Esecuzione Addestramento 4/10 (Seed: 5681) in corso...
+  ✅ [SOLO_MANI] Run 4 completata: Loss = 1.6869 | Train Acc = 0.2500 | Test Acc = 0.1964
+
+🔄 [SOLO_MANI] Esecuzione Addestramento 5/10 (Seed: 518) in corso...
+  ✅ [SOLO_MANI] Run 5 completata: Loss = 1.7224 | Train Acc = 0.2292 | Test Acc = 0.3036
+
+🔄 [SOLO_MANI] Esecuzione Addestramento 6/10 (Seed: 7518) in corso...
+  ✅ [SOLO_MANI] Run 6 completata: Loss = 1.7485 | Train Acc = 0.2708 | Test Acc = 0.2679
+
+🔄 [SOLO_MANI] Esecuzione Addestramento 7/10 (Seed: 8829) in corso...
+  ✅ [SOLO_MANI] Run 7 completata: Loss = 1.6184 | Train Acc = 0.3125 | Test Acc = 0.2500
+
+🔄 [SOLO_MANI] Esecuzione Addestramento 8/10 (Seed: 7420) in corso...
+  ✅ [SOLO_MANI] Run 8 completata: Loss = 1.7246 | Train Acc = 0.2500 | Test Acc = 0.2500
+
+🔄 [SOLO_MANI] Esecuzione Addestramento 9/10 (Seed: 4007) in corso...
+  ✅ [SOLO_MANI] Run 9 completata: Loss = 1.6926 | Train Acc = 0.2083 | Test Acc = 0.2500
+
+🔄 [SOLO_MANI] Esecuzione Addestramento 10/10 (Seed: 5410) in corso...
+  ✅ [SOLO_MANI] Run 10 completata: Loss = 1.7730 | Train Acc = 0.1875 | Test Acc = 0.2143
+
+=====================================================
+🔍 TESTANDO LA MODALITÀ: MANI_VOLTO
+=====================================================
+
+🔄 [MANI_VOLTO] Esecuzione Addestramento 1/10 (Seed: 197) in corso...
+  ✅ [MANI_VOLTO] Run 1 completata: Loss = 1.6948 | Train Acc = 0.3125 | Test Acc = 0.2857
+
+🔄 [MANI_VOLTO] Esecuzione Addestramento 2/10 (Seed: 4058) in corso...
+  ✅ [MANI_VOLTO] Run 2 completata: Loss = 1.7549 | Train Acc = 0.2917 | Test Acc = 0.1786
+
+🔄 [MANI_VOLTO] Esecuzione Addestramento 3/10 (Seed: 2725) in corso...
+  ✅ [MANI_VOLTO] Run 3 completata: Loss = 1.6253 | Train Acc = 0.2708 | Test Acc = 0.1607
+
+🔄 [MANI_VOLTO] Esecuzione Addestramento 4/10 (Seed: 5681) in corso...
+  ✅ [MANI_VOLTO] Run 4 completata: Loss = 1.8378 | Train Acc = 0.2708 | Test Acc = 0.1964
+
+🔄 [MANI_VOLTO] Esecuzione Addestramento 5/10 (Seed: 518) in corso...
+  ✅ [MANI_VOLTO] Run 5 completata: Loss = 1.7042 | Train Acc = 0.2083 | Test Acc = 0.3036
+
+🔄 [MANI_VOLTO] Esecuzione Addestramento 6/10 (Seed: 7518) in corso...
+  ✅ [MANI_VOLTO] Run 6 completata: Loss = 2.0721 | Train Acc = 0.2917 | Test Acc = 0.2679
+
+🔄 [MANI_VOLTO] Esecuzione Addestramento 7/10 (Seed: 8829) in corso...
+  ✅ [MANI_VOLTO] Run 7 completata: Loss = 1.6488 | Train Acc = 0.2917 | Test Acc = 0.2500
+
+🔄 [MANI_VOLTO] Esecuzione Addestramento 8/10 (Seed: 7420) in corso...
+  ✅ [MANI_VOLTO] Run 8 completata: Loss = 1.8847 | Train Acc = 0.3125 | Test Acc = 0.2500
+
+🔄 [MANI_VOLTO] Esecuzione Addestramento 9/10 (Seed: 4007) in corso...
+  ✅ [MANI_VOLTO] Run 9 completata: Loss = 1.7497 | Train Acc = 0.2917 | Test Acc = 0.2500
+
+🔄 [MANI_VOLTO] Esecuzione Addestramento 10/10 (Seed: 5410) in corso...
+  ✅ [MANI_VOLTO] Run 10 completata: Loss = 1.9197 | Train Acc = 0.2500 | Test Acc = 0.2143
+
+=====================================================
+📊 RESOCONTO DETTAGLIATO DEGLI ADDESTRAMENTI
+=====================================================
+
+--- 📌 MODALITÀ: SOLO_MANI ---
+  Run 01 -> Loss: 1.7492 | Train: 0.2292 | Test: 0.2857
+  Run 02 -> Loss: 1.7861 | Train: 0.3542 | Test: 0.1786
+  Run 03 -> Loss: 1.7182 | Train: 0.3333 | Test: 0.1607
+  Run 04 -> Loss: 1.6869 | Train: 0.2500 | Test: 0.1964
+  Run 05 -> Loss: 1.7224 | Train: 0.2292 | Test: 0.3036
+  Run 06 -> Loss: 1.7485 | Train: 0.2708 | Test: 0.2679
+  Run 07 -> Loss: 1.6184 | Train: 0.3125 | Test: 0.2500
+  Run 08 -> Loss: 1.7246 | Train: 0.2500 | Test: 0.2500
+  Run 09 -> Loss: 1.6926 | Train: 0.2083 | Test: 0.2500
+  Run 10 -> Loss: 1.7730 | Train: 0.1875 | Test: 0.2143
+  ---------------------------------------------------
+  🎯 MEDIA LOSS           : 1.7220
+  🎯 MEDIA TRAIN ACCURACY : 0.2625
+  🎯 MEDIA TEST ACCURACY  : 0.2357
+
+--- 📌 MODALITÀ: MANI_VOLTO ---
+  Run 01 -> Loss: 1.6948 | Train: 0.3125 | Test: 0.2857
+  Run 02 -> Loss: 1.7549 | Train: 0.2917 | Test: 0.1786
+  Run 03 -> Loss: 1.6253 | Train: 0.2708 | Test: 0.1607
+  Run 04 -> Loss: 1.8378 | Train: 0.2708 | Test: 0.1964
+  Run 05 -> Loss: 1.7042 | Train: 0.2083 | Test: 0.3036
+  Run 06 -> Loss: 2.0721 | Train: 0.2917 | Test: 0.2679
+  Run 07 -> Loss: 1.6488 | Train: 0.2917 | Test: 0.2500
+  Run 08 -> Loss: 1.8847 | Train: 0.3125 | Test: 0.2500
+  Run 09 -> Loss: 1.7497 | Train: 0.2917 | Test: 0.2500
+  Run 10 -> Loss: 1.9197 | Train: 0.2500 | Test: 0.2143
+  ---------------------------------------------------
+  🎯 MEDIA LOSS           : 1.7892
+  🎯 MEDIA TRAIN ACCURACY : 0.2792
+  🎯 MEDIA TEST ACCURACY  : 0.2357
+
+=====================================================
+(.venv) PS C:\ME\Universita\3_anno\AI lab\LinguaggioDeiSegni\Ai-Lab-Project> python .\src\neural-network\train.py
+
+⚙️  CONFIGURAZIONE AVVIATA: Modalità MANI_VOLTO
+Calcolo la lunghezza massima dei video per il padding...
+-> Il video più lungo dura 241 frame. Uso questo valore per il padding di tutti i video!
+Using cuda device
+SignLanguageLSTM(
+  (lstm): LSTM(402, 64, batch_first=True)
+  (fc): Linear(in_features=64, out_features=6, bias=True)
+)
+Inizio addestramento in modalità: MANI_VOLTO
+=============================
+ EPOCH: 1/20
+=============================
+Loss: 1.8047 | Batch: 1 | Accuratezza batch: 0.2500
+Loss: 1.7866 | Batch: 6 | Accuratezza batch: 0.2500
+Loss: 1.7576 | Batch: 11 | Accuratezza batch: 0.3750
+Loss: 1.7420 | Batch: 16 | Accuratezza batch: 0.3750
+Loss: 1.7401 | Batch: 21 | Accuratezza batch: 0.3750
+Loss: 1.7782 | Batch: 26 | Accuratezza batch: 0.2500
+
+---> Accuratezza Finale Epoca (Train): 0.3125
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 2/20
+=============================
+Loss: 1.7622 | Batch: 1 | Accuratezza batch: 0.2500
+Loss: 1.7728 | Batch: 6 | Accuratezza batch: 0.2500
+Loss: 1.7713 | Batch: 11 | Accuratezza batch: 0.1250
+Loss: 1.7098 | Batch: 16 | Accuratezza batch: 0.2500
+Loss: 1.8031 | Batch: 21 | Accuratezza batch: 0.0000
+Loss: 1.8312 | Batch: 26 | Accuratezza batch: 0.2500
+
+---> Accuratezza Finale Epoca (Train): 0.1875
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 3/20
+=============================
+Loss: 2.0967 | Batch: 1 | Accuratezza batch: 0.0000
+Loss: 1.7602 | Batch: 6 | Accuratezza batch: 0.2500
+Loss: 1.8178 | Batch: 11 | Accuratezza batch: 0.1250
+Loss: 1.9134 | Batch: 16 | Accuratezza batch: 0.1250
+Loss: 1.7060 | Batch: 21 | Accuratezza batch: 0.2500
+Loss: 1.7927 | Batch: 26 | Accuratezza batch: 0.1250
+
+---> Accuratezza Finale Epoca (Train): 0.1458
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 4/20
+=============================
+Loss: 1.9232 | Batch: 1 | Accuratezza batch: 0.0000
+Loss: 1.9713 | Batch: 6 | Accuratezza batch: 0.0000
+Loss: 1.7240 | Batch: 11 | Accuratezza batch: 0.2500
+Loss: 1.8205 | Batch: 16 | Accuratezza batch: 0.1250
+Loss: 1.6052 | Batch: 21 | Accuratezza batch: 0.2500
+Loss: 1.6601 | Batch: 26 | Accuratezza batch: 0.3750
+
+---> Accuratezza Finale Epoca (Train): 0.1667
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 5/20
+=============================
+Loss: 1.6771 | Batch: 1 | Accuratezza batch: 0.2500
+Loss: 1.7735 | Batch: 6 | Accuratezza batch: 0.3750
+Loss: 1.8024 | Batch: 11 | Accuratezza batch: 0.1250
+Loss: 1.7411 | Batch: 16 | Accuratezza batch: 0.0000
+Loss: 1.8206 | Batch: 21 | Accuratezza batch: 0.1250
+Loss: 1.7404 | Batch: 26 | Accuratezza batch: 0.1250
+
+---> Accuratezza Finale Epoca (Train): 0.1667
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 6/20
+=============================
+Loss: 1.6604 | Batch: 1 | Accuratezza batch: 0.6250
+Loss: 1.5355 | Batch: 6 | Accuratezza batch: 0.5000
+Loss: 1.7378 | Batch: 11 | Accuratezza batch: 0.3750
+Loss: 1.8433 | Batch: 16 | Accuratezza batch: 0.1250
+Loss: 1.8687 | Batch: 21 | Accuratezza batch: 0.0000
+Loss: 1.9189 | Batch: 26 | Accuratezza batch: 0.2500
+
+---> Accuratezza Finale Epoca (Train): 0.3125
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 7/20
+=============================
+Loss: 1.8471 | Batch: 1 | Accuratezza batch: 0.2500
+Loss: 1.8049 | Batch: 6 | Accuratezza batch: 0.2500
+Loss: 1.7216 | Batch: 11 | Accuratezza batch: 0.2500
+Loss: 1.7489 | Batch: 16 | Accuratezza batch: 0.2500
+Loss: 1.7001 | Batch: 21 | Accuratezza batch: 0.1250
+Loss: 1.7317 | Batch: 26 | Accuratezza batch: 0.5000
+
+---> Accuratezza Finale Epoca (Train): 0.2708
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 8/20
+=============================
+Loss: 1.7628 | Batch: 1 | Accuratezza batch: 0.5000
+Loss: 1.6963 | Batch: 6 | Accuratezza batch: 0.3750
+Loss: 1.7693 | Batch: 11 | Accuratezza batch: 0.1250
+Loss: 1.7781 | Batch: 16 | Accuratezza batch: 0.1250
+Loss: 1.7000 | Batch: 21 | Accuratezza batch: 0.2500
+Loss: 1.6449 | Batch: 26 | Accuratezza batch: 0.5000
+
+---> Accuratezza Finale Epoca (Train): 0.3125
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 9/20
+=============================
+Loss: 1.7689 | Batch: 1 | Accuratezza batch: 0.1250
+Loss: 1.7555 | Batch: 6 | Accuratezza batch: 0.1250
+Loss: 1.4448 | Batch: 11 | Accuratezza batch: 0.5000
+Loss: 1.6472 | Batch: 16 | Accuratezza batch: 0.3750
+Loss: 1.8005 | Batch: 21 | Accuratezza batch: 0.0000
+Loss: 1.6845 | Batch: 26 | Accuratezza batch: 0.0000
+
+---> Accuratezza Finale Epoca (Train): 0.1875
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 10/20
+=============================
+Loss: 1.6469 | Batch: 1 | Accuratezza batch: 0.3750
+Loss: 1.7991 | Batch: 6 | Accuratezza batch: 0.3750
+Loss: 1.7397 | Batch: 11 | Accuratezza batch: 0.5000
+Loss: 1.7983 | Batch: 16 | Accuratezza batch: 0.1250
+Loss: 1.6955 | Batch: 21 | Accuratezza batch: 0.1250
+Loss: 1.8040 | Batch: 26 | Accuratezza batch: 0.2500
+
+---> Accuratezza Finale Epoca (Train): 0.2917
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 11/20
+=============================
+Loss: 1.8829 | Batch: 1 | Accuratezza batch: 0.0000
+Loss: 1.8796 | Batch: 6 | Accuratezza batch: 0.1250
+Loss: 1.8239 | Batch: 11 | Accuratezza batch: 0.2500
+Loss: 1.6670 | Batch: 16 | Accuratezza batch: 0.3750
+Loss: 1.7177 | Batch: 21 | Accuratezza batch: 0.1250
+Loss: 1.8117 | Batch: 26 | Accuratezza batch: 0.2500
+
+---> Accuratezza Finale Epoca (Train): 0.1875
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 12/20
+=============================
+Loss: 1.6184 | Batch: 1 | Accuratezza batch: 0.5000
+Loss: 1.7065 | Batch: 6 | Accuratezza batch: 0.5000
+Loss: 1.7258 | Batch: 11 | Accuratezza batch: 0.2500
+Loss: 1.5034 | Batch: 16 | Accuratezza batch: 0.5000
+Loss: 1.6255 | Batch: 21 | Accuratezza batch: 0.3750
+Loss: 1.6271 | Batch: 26 | Accuratezza batch: 0.2500
+
+---> Accuratezza Finale Epoca (Train): 0.3958
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 13/20
+=============================
+Loss: 1.7658 | Batch: 1 | Accuratezza batch: 0.2500
+Loss: 1.5428 | Batch: 6 | Accuratezza batch: 0.5000
+Loss: 1.7663 | Batch: 11 | Accuratezza batch: 0.2500
+Loss: 1.7578 | Batch: 16 | Accuratezza batch: 0.0000
+Loss: 1.8193 | Batch: 21 | Accuratezza batch: 0.2500
+Loss: 1.6536 | Batch: 26 | Accuratezza batch: 0.3750
+
+---> Accuratezza Finale Epoca (Train): 0.2708
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 14/20
+=============================
+Loss: 1.7321 | Batch: 1 | Accuratezza batch: 0.3750
+Loss: 1.5702 | Batch: 6 | Accuratezza batch: 0.3750
+Loss: 1.8340 | Batch: 11 | Accuratezza batch: 0.1250
+Loss: 1.7773 | Batch: 16 | Accuratezza batch: 0.3750
+Loss: 1.9959 | Batch: 21 | Accuratezza batch: 0.0000
+Loss: 1.8697 | Batch: 26 | Accuratezza batch: 0.0000
+
+---> Accuratezza Finale Epoca (Train): 0.2083
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 15/20
+=============================
+Loss: 1.6726 | Batch: 1 | Accuratezza batch: 0.2500
+Loss: 1.7468 | Batch: 6 | Accuratezza batch: 0.2500
+Loss: 1.6876 | Batch: 11 | Accuratezza batch: 0.1250
+Loss: 1.9218 | Batch: 16 | Accuratezza batch: 0.1250
+Loss: 1.7665 | Batch: 21 | Accuratezza batch: 0.2500
+Loss: 1.6981 | Batch: 26 | Accuratezza batch: 0.2500
+
+---> Accuratezza Finale Epoca (Train): 0.2083
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 16/20
+=============================
+Loss: 1.5908 | Batch: 1 | Accuratezza batch: 0.3750
+Loss: 1.8724 | Batch: 6 | Accuratezza batch: 0.1250
+Loss: 1.5032 | Batch: 11 | Accuratezza batch: 0.6250
+Loss: 1.8289 | Batch: 16 | Accuratezza batch: 0.1250
+Loss: 1.7202 | Batch: 21 | Accuratezza batch: 0.2500
+Loss: 1.8042 | Batch: 26 | Accuratezza batch: 0.3750
+
+---> Accuratezza Finale Epoca (Train): 0.3125
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 17/20
+=============================
+Loss: 1.5783 | Batch: 1 | Accuratezza batch: 0.3750
+Loss: 1.9173 | Batch: 6 | Accuratezza batch: 0.1250
+Loss: 1.7448 | Batch: 11 | Accuratezza batch: 0.2500
+Loss: 1.5753 | Batch: 16 | Accuratezza batch: 0.6250
+Loss: 1.8925 | Batch: 21 | Accuratezza batch: 0.1250
+Loss: 1.7272 | Batch: 26 | Accuratezza batch: 0.1250
+
+---> Accuratezza Finale Epoca (Train): 0.2708
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 18/20
+=============================
+Loss: 1.7525 | Batch: 1 | Accuratezza batch: 0.1250
+Loss: 1.8740 | Batch: 6 | Accuratezza batch: 0.2500
+Loss: 1.6276 | Batch: 11 | Accuratezza batch: 0.2500
+Loss: 1.6035 | Batch: 16 | Accuratezza batch: 0.5000
+Loss: 1.7855 | Batch: 21 | Accuratezza batch: 0.2500
+Loss: 1.8415 | Batch: 26 | Accuratezza batch: 0.1250
+
+---> Accuratezza Finale Epoca (Train): 0.2500
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 19/20
+=============================
+Loss: 1.9210 | Batch: 1 | Accuratezza batch: 0.1250
+Loss: 1.6953 | Batch: 6 | Accuratezza batch: 0.3750
+Loss: 1.8793 | Batch: 11 | Accuratezza batch: 0.0000
+Loss: 1.5943 | Batch: 16 | Accuratezza batch: 0.5000
+Loss: 1.6476 | Batch: 21 | Accuratezza batch: 0.2500
+Loss: 1.7112 | Batch: 26 | Accuratezza batch: 0.1250
+
+---> Accuratezza Finale Epoca (Train): 0.2292
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+=============================
+ EPOCH: 20/20
+=============================
+Loss: 1.8853 | Batch: 1 | Accuratezza batch: 0.0000
+Loss: 1.7820 | Batch: 6 | Accuratezza batch: 0.2500
+Loss: 1.5040 | Batch: 11 | Accuratezza batch: 0.5000
+Loss: 1.8806 | Batch: 16 | Accuratezza batch: 0.0000
+Loss: 1.6783 | Batch: 21 | Accuratezza batch: 0.2500
+Loss: 1.5808 | Batch: 26 | Accuratezza batch: 0.3750
+
+---> Accuratezza Finale Epoca (Train): 0.2292
+
+*** ACCURATEZZA DI TEST FINALE: 0.2500 ***
+
+Addestramento completato! 🎉

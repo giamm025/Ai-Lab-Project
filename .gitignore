@@ -27,15 +27,17 @@ models/*.weights
 
 # 5. Log e Risultati Temporanei
 results/*.*
+results/MANI_VOLTO/*.*
+results/SOLO_MANI/*.*
 
-# 5. File di Sistema (Windows/Mac)
+# 6. File di Sistema (Windows/Mac)
 .DS_Store
 Thumbs.db
 
-# 6. IDEs e Code Editors
+# 7. IDEs e Code Editors
 .vscode/
 .idea/
 
 
-# 7. Documentazione
+# 8. Documentazione
 docs/

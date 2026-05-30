@@ -1,6 +1,8 @@
-import os
-import os
 import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent))
+
 import torch
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -8,18 +10,9 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report
 from torch.utils.data import DataLoader, random_split
 import argparse
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-root_dir = os.path.dirname(current_dir)
-neural_net_dir = os.path.join(current_dir, 'neural-network')
-
-sys.path.append(root_dir)
-sys.path.append(current_dir)
-sys.path.append(neural_net_dir) 
-
-from config import PROCESSED_DIR, TARGET_WORDS, LABEL_MAP
-from dataset import SignLanguageDataset
-from model import SignLanguageLSTM
+from config import MODELS_DIR, RESULTS_DIR, PROCESSED_DIR, TARGET_WORDS, LABEL_MAP
+from neural_network.dataset import SignLanguageDataset
+from neural_network.model import SignLanguageLSTM
 
 # =====================================================================
 # FUNZIONE 1: DISEGNARE LE CURVE DI APPRENDIMENTO (Learning Curves)
@@ -28,7 +21,7 @@ from model import SignLanguageLSTM
 # Ci fa vedere visivamente se la rete ha imparato bene o se è andata in Overfitting 
 def plot_learning_curves(csv_path, save_dir, modalita):
     
-    if not os.path.exists(csv_path):
+    if not csv_path.exists():
         print("CSV non trovato! Fai prima il train.")
         return
         
@@ -53,7 +46,7 @@ def plot_learning_curves(csv_path, save_dir, modalita):
     plt.legend() 
     
     # Salviamo l'immagine finita come .png nella cartella results/
-    plot_path = os.path.join(save_dir, f'learning_curve_{modalita}.png')
+    plot_path = save_dir / f'learning_curve_{modalita}.png'
     plt.savefig(plot_path)
     plt.close()
     print(f"📈 Grafico Learning Curve salvato in: {plot_path}")
@@ -93,18 +86,20 @@ def evaluate_and_plot_confusion_matrix(model_path, dataset, modalita, save_dir, 
     
     print("🤖 Inizio test sul modello salvato...")
     with torch.no_grad(): 
-        for x, y in test_dataloader:
+        # Modifica qui: aggiungiamo 'lengths' per catturare il terzo valore restituito dal dataset
+        for x, y, lengths in test_dataloader:
             if modalita == "SOLO_MANI":
                 x = x[:, :, :126] 
-            x, y = x.to(device), y.to(device)
             
-            outputs = model(x)
+            x, y, lengths = x.to(device), y.to(device), lengths.cpu()
+            
+            # Passiamo x e lengths (già pronte!) al modello
+            outputs = model(x, lengths)
             preds = torch.argmax(outputs, dim=1) 
             
-            # Aggiungiamo le risposte alle nostre liste
             all_preds.extend(preds.cpu().numpy())
             all_trues.extend(y.cpu().numpy())
-            
+
     # 3. IL CLASSIFICATION REPORT (La Pagella Dettagliata)
     target_names = [word for word, idx in sorted(LABEL_MAP.items(), key=lambda item: item[1])]
     
@@ -112,8 +107,8 @@ def evaluate_and_plot_confusion_matrix(model_path, dataset, modalita, save_dir, 
     report = classification_report(all_trues, all_preds, target_names=target_names)
     
     # Salviamo la pagella in un file di testo (.txt)
-    report_path = os.path.join(save_dir, f'classification_report_{modalita}.txt')
-    with open(report_path, 'w') as f:
+    report_path = save_dir / f'classification_report_{modalita}.txt'
+    with report_path.open('w') as f:
         f.write(f"--- RISULTATI FINALI {modalita} ---\n\n")
         f.write(report)
     print(f"📝 Report Testuale salvato in: {report_path}")
@@ -134,48 +129,42 @@ def evaluate_and_plot_confusion_matrix(model_path, dataset, modalita, save_dir, 
     plt.xlabel('Valore Predetto (Quello che ha capito la rete)')
     
     # Salva il grafico come immagine
-    cm_path = os.path.join(save_dir, f'confusion_matrix_{modalita}.png')
+    cm_path = save_dir / f'confusion_matrix_{modalita}.png'
     plt.savefig(cm_path)
     plt.close()
     print(f"📊 Confusion Matrix salvata in: {cm_path}")
-
 
 # =====================================================================
 # MAIN: ESECUZIONE DELLA VALUTAZIONE
 # =====================================================================
 if __name__ == "__main__":
-    # Creiamo il telecomando per scegliere la modalità dal terminale
     parser = argparse.ArgumentParser(description="Valuta il modello e genera grafici.")
     parser.add_argument("--modalita", type=str, choices=["SOLO_MANI", "MANI_VOLTO"], default="MANI_VOLTO")
     args = parser.parse_args()
     
     MODALITA = args.modalita
-    
-    # Troviamo le cartelle
-    MODELS_DIR = os.path.join(root_dir, 'models')
-    RESULTS_DIR = os.path.join(root_dir, 'results')
-    os.makedirs(RESULTS_DIR, exist_ok=True)
-    
     device = "cuda" if torch.cuda.is_available() else "cpu"
     
-    # Costruiamo i nomi esatti dei file che ha salvato train.py
-    model_file = os.path.join(MODELS_DIR, f"best_model_{MODALITA}.pth")
-    csv_file = os.path.join(RESULTS_DIR, f"training_history_{MODALITA}.csv")
+    # creiamo le sotto cartelle results/SOLO_MANI/ e results/MANI_VOLTO/
+    MODALITA_RESULTS_DIR = RESULTS_DIR / MODALITA
+    MODALITA_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # Costruiamo i percorsi usando la nuova cartella dedicata
+    model_file = MODELS_DIR / f"best_model_{MODALITA}.pth"
+    csv_file = RESULTS_DIR / f"training_history_{MODALITA}.csv"
     
     print(f"\n--- AVVIO VALUTAZIONE: {MODALITA} ---")
     
-    # Controllo di sicurezza: se il modello non esiste, fermati!
-    if not os.path.exists(model_file):
+    if not model_file.exists():
         print(f"❌ Errore: Modello non trovato ({model_file}). Addestra prima la rete!")
         sys.exit()
         
-    # Carica la dispensa dei dati (non occupa molta RAM perché legge solo i nomi dei file)
     full_dataset = SignLanguageDataset(PROCESSED_DIR)
     
-    # 1. Disegna le curve usando il file CSV
-    plot_learning_curves(csv_file, RESULTS_DIR, MODALITA)
+    # Disegna le curve
+    plot_learning_curves(csv_file, MODALITA_RESULTS_DIR, MODALITA)
     
-    # 2. Fai l'esame alla rete e disegna la matrice di confusione
-    evaluate_and_plot_confusion_matrix(model_file, full_dataset, MODALITA, RESULTS_DIR, device)
+    # Esegue il test e disegna la matrice
+    evaluate_and_plot_confusion_matrix(model_file, full_dataset, MODALITA, MODALITA_RESULTS_DIR, device)
     
-    print("\n✅ Valutazione completata! Controlla la cartella 'results/'.")
+    print(f"\n✅ Valutazione completata! Controlla la cartella: {MODALITA_RESULTS_DIR}")

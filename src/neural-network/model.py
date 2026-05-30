@@ -22,8 +22,7 @@ class SignLanguageLSTM(nn.Module):
     #                (Es. 64 o 128 neuroni. Piu è grande, più la rete può ricordare, ma più è difficile da addestrare)
     # - num_classes: il numero di canali di uscita... cioe: quali sono le soluzioni possibili?
     #                (nel nostro caso è il numero di parole che vogliamo riconoscere, cioè 5)
-    def __init__(self, input_size, hidden_size, num_classes, num_layers=1):
-
+    def __init__(self, input_size, hidden_size, num_classes=1, num_layers=1):
         super().__init__()
 
         # "legge” un intero video, un frame alla volta, e salva nella sua memoria interna (hidden state) un’array di numero che,
@@ -32,9 +31,9 @@ class SignLanguageLSTM(nn.Module):
             input_size=input_size,
             hidden_size=hidden_size,
             num_layers=num_layers,
-            num_layers=1,
             batch_first=True,
-        )  # serve a specificare l'ordine dei numeri nel tensore di input.
+        )  
+        # serve a specificare l'ordine dei numeri nel tensore di input.
         # se batch_first=True,  la LSTM si aspetta (batch_size, seq_len, input_size).
         # se batch_first=False, la LSTM si aspetta (seq_len, batch_size, input_size).
         # la LSTM restituirà l'intera lista di ciò che ha pensato ad ogni frame de video

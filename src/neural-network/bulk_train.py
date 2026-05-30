@@ -4,7 +4,12 @@ import sys
 import os
 import random
 import argparse
+from pathlib import Path
 
+src_dir = Path(__file__).resolve().parent.parent
+sys.path.append(str(src_dir))
+
+import config
 
 def main():
     parser = argparse.ArgumentParser(description="Esegui il bulk training del modello.")
@@ -93,16 +98,15 @@ def main():
                 f"🔄 [{mod}] Esecuzione Addestramento {run}/{N_RUNS} (Seed: {seed}) in corso..."
             )
 
-            # Determina i path assoluti basandosi sulla posizione di questo script
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            src_dir = os.path.dirname(current_dir)
+            current_dir = Path(__file__).resolve().parent
+            train_script_path = current_dir / "train.py"
 
             # Assicuriamoci che python trovi config.py impostando il PYTHONPATH alla cartella src/
             env = os.environ.copy()
             env["PYTHONPATH"] = (
-                src_dir + os.pathsep + env.get("PYTHONPATH", "")
+                str(src_dir) + os.pathsep + env.get("PYTHONPATH", "")
                 if env.get("PYTHONPATH")
-                else src_dir
+                else str(src_dir)
             )
 
             # Forza l'output UTF-8 per il processo figlio così scriverà le emoji senza fare crash
@@ -111,7 +115,7 @@ def main():
             # Lancia train.py usando la sua cartella assoluta
             cmd = [
                 sys.executable,
-                os.path.join(current_dir, "train.py"),
+                str(train_script_path),
                 "--modalita",
                 mod,
                 "--seed",
@@ -210,9 +214,7 @@ def main():
     try:
         from playsound import playsound
 
-        sound_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "marimba_bloop.mp3"
-        )
+        sound_path = str(Path(__file__).resolve().parent.parent.parent / "marimba_bloop.mp3")
         if os.path.exists(sound_path):
             playsound(sound_path)
         else:

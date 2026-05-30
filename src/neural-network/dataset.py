@@ -1,4 +1,8 @@
 import os
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 import torch
 import numpy as np
@@ -101,11 +105,12 @@ if __name__ == "__main__":
     print(f"\nVideo totali trovati dal Dataset: {len(my_dataset)}")
 
     # Chiediamo al Dataset di darci il primo video in assoluto (indice 0)
-    primo_video, prima_etichetta = my_dataset[0]
+    primo_video, prima_etichetta, prima_lunghezza = my_dataset[0]
 
     print("\nControllo Qualità sul primo video:")
     print(f"Formato del Tensore: {primo_video.shape}")
     print(f"Etichetta (Numero della parola): {prima_etichetta.item()}")
+    print(f"Lunghezza Reale pre-padding: {prima_lunghezza.item()}")
 
     # Controllo dinamico sul test
     if primo_video.shape[0] == my_dataset.max_frames and primo_video.shape[1] == 1530:

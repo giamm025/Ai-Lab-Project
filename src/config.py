@@ -1,26 +1,22 @@
-import os
 import json
+from pathlib import Path
 
-""" 
+''' 
 ==========================================================================
-CONFIGURAZIONE GENERALE
+1. GESTIONE DEI PERCORSI (Pathlib)
 ==========================================================================
-"""
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+'''
 
-RAW_DIR = os.path.join(
-    BASE_DIR, "..", "data", "raw"
-)  # data/ è la cartella dove salveremo il NOSTRO dataset, ovvero quello formato dai video presi dai vari dataset
-PROCESSED_DIR = os.path.join(
-    BASE_DIR, "..", "data", "processed"
-)  # la cartella in cui salveremo i file .npy contenenti le coordinate di mani e volto estratti con MediaPipe
-LABELS_FILEPATH = os.path.join(
-    BASE_DIR, "..", "data", "labels.json"
-)  # file immutabile per il mapping Parola -> Numero
-DATASETS_DIR = os.path.join(
-    BASE_DIR, "..", "datasets"
-)  # cartella dove lo script download_datasets.py salva i dataset originali
+ROOT_DIR        = Path(__file__).resolve().parent.parent
+RAW_DIR         = ROOT_DIR / 'data'     / 'raw'
+PROCESSED_DIR   = ROOT_DIR / 'data'     / 'processed'
+LABELS_FILEPATH = ROOT_DIR / 'data'     / 'labels.json'
+DATASETS_DIR    = ROOT_DIR / 'datasets'
+MODELS_DIR      = ROOT_DIR / 'models'
+RESULTS_DIR     = ROOT_DIR / 'results'
 
+for directory in [RAW_DIR, PROCESSED_DIR, DATASETS_DIR, MODELS_DIR, RESULTS_DIR]:
+    directory.mkdir(parents=True, exist_ok=True)
 
 # le parole che utilizzeremo per costruire il nostro dataset, addestrare e testare il modello (prendendo solo i video relativi a queste parole)
 TARGET_WORDS = ["happen", "finally", "late", "not-yet", "misunderstand", "understand"]
@@ -30,7 +26,6 @@ TARGET_WORDS = ["happen", "finally", "late", "not-yet", "misunderstand", "unders
 GESTIONE ETICHETTE (LABELS)
 ==========================================================================
 """
-
 
 # crea il labels.json basandosi sugli indici di TARGET_WORDS
 def create_label_map():
@@ -45,7 +40,7 @@ def create_label_map():
 def get_labels():
 
     # se il file NON esiste => lo crea (basandosi sugli indici di TARGET_WORDS)
-    if not os.path.exists(LABELS_FILEPATH):
+    if not LABELS_FILEPATH.exists():
         return create_label_map()
 
     # altrimenti (gia esiste) => lo apre in sola lettura e lo carica in un dizionario

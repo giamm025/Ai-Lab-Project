@@ -1,17 +1,14 @@
-import os
 import sys
 import torch
 from torch.utils.data import DataLoader, random_split
 import torchmetrics
 import argparse
 import csv
+from pathlib import Path
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-src_dir = os.path.dirname(current_dir)
-root_dir = os.path.dirname(src_dir)
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-sys.path.append(src_dir)
-from config import TARGET_WORDS, PROCESSED_DIR
+from config import TARGET_WORDS, PROCESSED_DIR, MODELS_DIR, RESULTS_DIR
 from dataset import SignLanguageDataset
 from model import SignLanguageLSTM
 
@@ -164,13 +161,8 @@ def test_loop(test_dataloader, model, loss_fn):
 """
 print(f"Inizio addestramento in modalità: {MODALITA}")
 
-# Percorsi corretti (Dal tuo codice HEAD)
-MODELS_DIR = os.path.join(root_dir, 'models')
-os.makedirs(MODELS_DIR, exist_ok=True)
-model_save_path = os.path.join(MODELS_DIR, f"best_model_{MODALITA}.pth")
-
-RESULTS_DIR = os.path.join(root_dir, 'results')
-os.makedirs(RESULTS_DIR, exist_ok=True)
+# prendiamo il path in cui salvare il modello (root/models/best_model_{MODALITA}.pth)
+model_save_path = MODELS_DIR / f"best_model_{MODALITA}.pth"
 
 # Configurazioni Early Stopping e CSV
 history = []
@@ -205,7 +197,7 @@ for epoch in range(EPOCHS):
             break # Interrompe il ciclo for!
 
 # --- SALVATAGGIO DEL CSV FINALE ---
-csv_path = os.path.join(RESULTS_DIR, f"training_history_{MODALITA}.csv")
+csv_path = RESULTS_DIR / f"training_history_{MODALITA}.csv"
 with open(csv_path, mode='w', newline='') as file:
     writer = csv.writer(file)
     writer.writerow(['Epoch', 'Train_Loss', 'Train_Acc', 'Test_Loss', 'Test_Acc'])

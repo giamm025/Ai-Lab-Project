@@ -1,3 +1,8 @@
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
@@ -94,14 +99,10 @@ if __name__ == "__main__":
 
     print("--------------------- SOLO MANI ---------------------")
     print(f"Formato Input: {dati_finti_mani.shape}")
-    print(
-        f"Formato Output: {predizioni_mani.shape} -> (Deve essere: [{batch_size} video, {num_classes} parole])"
-    )
+    print(f"Formato Output: {predizioni_mani.shape} -> (Deve essere: [{batch_size} video, {num_classes} parole])")
 
     # --------------------- MANI + VOLTO ---------------------
-    input_size_volto = (
-        1530  # Tutto l'array completo (63 mano sx + 63 mano dx + 1404 volto)
-    )
+    input_size_volto = (1530) # Tutto l'array completo (63 mano sx + 63 mano dx + 1404 volto)
     dati_finti_volto = torch.randn(batch_size, seq_len, input_size_volto)
     modello_volto = SignLanguageLSTM(
         input_size=input_size_volto, hidden_size=hidden_size, num_classes=num_classes
@@ -110,12 +111,8 @@ if __name__ == "__main__":
 
     print("\n--------------------- MANI + VOLTO ---------------------")
     print(f"Formato Input: {dati_finti_volto.shape}")
-    print(
-        f"Formato Output: {predizioni_volto.shape} -> (Deve essere: [{batch_size} video, {num_classes} parole])"
-    )
+    print(f"Formato Output: {predizioni_volto.shape} -> (Deve essere: [{batch_size} video, {num_classes} parole])")
 
     # --------------------- RESOCONTO FINALE ---------------------
     if predizioni_mani.shape == (8, 5) and predizioni_volto.shape == (8, 5):
-        print(
-            "\n-> MATEMATICAMENTE PERFETTO! La rete riceve i dati e sputa 5 probabilità (una per parola)."
-        )
+        print(f"-> MATEMATICAMENTE PERFETTO! La rete riceve i dati e sputa 5 probabilità (una per parola).")

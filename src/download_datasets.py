@@ -1,15 +1,12 @@
 import kagglehub
 import argparse
-from pathlib import Path
-
-# calcola il percorso assoluto della cartella Ai-Lab-Project (in questo modo possiamo runnare il coice da qualsiasi cartella senza problemi, sia che ci troviamo in src/ sia che ci troviamo in Ai-Lab-Project/)
-BASE_DIR = Path(__file__).resolve().parent.parent
+from config import DATASETS_DIR
 
 paths = {
-    "asllvd": BASE_DIR / "datasets" / "ASLLVD",
-    "asl": BASE_DIR / "datasets" / "ASL_Citizen",
-    "ms": BASE_DIR / "datasets" / "MS_ASL",
-    "wlasl": BASE_DIR / "datasets" / "WLASL",
+    "asllvd":   DATASETS_DIR / "ASLLVD",
+    "asl":      DATASETS_DIR / "ASL_Citizen",
+    "ms":       DATASETS_DIR / "MS_ASL",
+    "wlasl":    DATASETS_DIR / "WLASL",
 }
 
 urls = {
@@ -39,12 +36,10 @@ def download_dataset(name: str):
 
     print(f"Scaricando il dataset '{name}' da Kaggle...")
     kagglehub.dataset_download(handle, output_dir=output_dir)
-    print(f"Dataset '{name}' scaricato e salvato in '{target_path}/raw'.")
+    print(f"Dataset '{name}' scaricato e salvato in '{output_dir}'.")
 
 
 if __name__ == "__main__":
-    import argparse
-
     parser = argparse.ArgumentParser(
         description="Scarica un dataset di segni ASL da Kaggle"
     )

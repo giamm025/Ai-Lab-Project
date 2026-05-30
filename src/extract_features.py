@@ -1,13 +1,6 @@
-import os
-import sys
 import cv2
 import mediapipe as mp
 import numpy as np
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.append(parent_dir)
-
 from config import PROCESSED_DIR, RAW_DIR, LABEL_MAP
 
 # ------------------------------------------------------------- MEDIA PIPE -------------------------------------------------------------
@@ -63,7 +56,6 @@ def process_video(video_path, save_path):
 # (NMM = Non-Manual Markers) per la LIS e le lingue dei segni in generale.
 # Fonte: topologia ufficiale MediaPipe Face Mesh (468 landmark totali).
 # ---------------------------------------------------------------------------
-
 # LABBRA — 40 punti (contorno esterno + interno)
 # Coprono la forma della bocca: apertura, arrotondamento, morfemi orali.
 NMM_LIPS = [
@@ -150,37 +142,29 @@ def convert_keypoints(mp_keypoints):
 # ------------------------------------------------------ MAIN ------------------------------------------------------
 if __name__ == "__main__":
 
-    # creiamo la cartella processed se non esiste (la useremo per salvare i file .npy con i dati estratti da ogni video)
-    os.makedirs(PROCESSED_DIR, exist_ok=True)
-
     print("\n--- INIZIO ESTRAZIONE MASSIVA (DA TUTTI I DATASET) ---")
     video_processati = 0
     video_saltati = 0
 
     # Leggiamo TUTTI i file mp4 presenti nella cartella data/raw/ (indipendentemente da quale dataset provengano)
-    for video_filename in os.listdir(RAW_DIR):
-        if video_filename.endswith(".mp4"):
+    for video_path in RAW_DIR.glob("*.mp4"):
+        
+        # dal filename estriamo la parola (il formato del nostro dataet è sempre parola_dataset_id.mp4)
+        video_filename = video_path.name
+        word = video_filename.split("_")[0]
 
-            # dal filename estriamo la parola (il formato del nostro dataet è sempre parola_dataset_id.mp4)
-            word = video_filename.split("_")[0]
+        # costruiamo il path in cui effettuare il salvataggio
+        save_path = PROCESSED_DIR / video_path.with_suffix('.npy').name
 
-            # creiamo il percorso da cui leggere il video (data/raw/parola_dataset_id.mp4)
-            # creiamo il percorso in cui salvare il file .npy con le coordinate estratte (data/processed/parola_dataset_id.npy)
-            video_path = os.path.join(RAW_DIR, video_filename)
-            save_filename = video_filename.replace(".mp4", ".npy")
-            save_path = os.path.join(PROCESSED_DIR, save_filename)
-
-            # se il video è gia stato processato in passato => next
-            if os.path.exists(save_path):
-                video_saltati += 1
-            else:
-                print(f"Elaborazione: [{word}] -> {video_filename}...")
-                process_video(video_path, save_path)
-                video_processati += 1
+        # se il video è gia stato processato in passato => next
+        if save_path.exists():
+            video_saltati += 1
+        else:
+            print(f"Elaborazione: [{word}] -> {video_filename}...")
+            process_video(str(video_path), str(save_path))
+            video_processati += 1
 
     print("\n--- RESOCONTO FINALE ESTRAZIONE ---")
     print(f"Video processati: {video_processati}")
     print(f"Video già esistenti (saltati): {video_saltati}")
-    print(
-        f"Totale tensori pronti per la Rete Neurale: {video_processati + video_saltati}"
-    )
+    print(f"Totale tensori pronti per la Rete Neurale: {video_processati + video_saltati}")

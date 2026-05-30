@@ -2,25 +2,23 @@ import os
 import csv
 import shutil
 import sys
+from pathlib import Path
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)                
-sys.path.append(parent_dir)   
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from config import TARGET_WORDS, RAW_DIR, DATASETS_DIR
 
 # prendiamo i percorsi specifici per il dataset ASL-Citizen
-ASLCITIZEN_DIR = os.path.join(DATASETS_DIR, 'ASL_Citizen', 'raw')
+ASLCITIZEN_DIR = DATASETS_DIR / 'ASL_Citizen' / 'raw'
 CSV_FILES = ['train.csv', 'val.csv', 'test.csv']
-ASLCITIZEN_SPLIT_DIR  = os.path.join(ASLCITIZEN_DIR, 'ASL_Citizen', 'splits')
-ASLCITIZEN_VIDEOS_DIR = os.path.join(ASLCITIZEN_DIR, 'ASL_Citizen', 'videos')
+ASLCITIZEN_SPLIT_DIR  = ASLCITIZEN_DIR / 'ASL_Citizen' / 'splits'
+ASLCITIZEN_VIDEOS_DIR = ASLCITIZEN_DIR / 'ASL_Citizen' / 'videos'
 
 
 # funzione per estrarre da MSASL solo i video delle TARGET_WORDS e salvarli in data/raw/ con il formato "parola_dataset_id.mp4"
 def parse_aslcitizen():
 
     print("Avvio parsing ASL-Citizen...")
-    os.makedirs(RAW_DIR, exist_ok=True)
     
     # trasformiamo il nostro formato formato (es. not-yet) nel formato ASL-Citizen (es. NOTYET)
     target_mapping = {}
@@ -35,13 +33,13 @@ def parse_aslcitizen():
     # processiamo tutti e 3 i file CSV (Train, Val, Test)
     for csv_filename in CSV_FILES:
 
-        csv_path = os.path.join(ASLCITIZEN_SPLIT_DIR, csv_filename)
-        if not os.path.exists(csv_path):
+        csv_path = ASLCITIZEN_SPLIT_DIR / csv_filename
+        if not csv_path.exists():
             print(f"File {csv_filename} non trovato in {ASLCITIZEN_SPLIT_DIR}. Lo salto.")
             continue
             
         print(f"\nLeggendo metadati da: {csv_filename}...")
-        with open(csv_path, mode='r', encoding='utf-8') as f:
+        with csv_path.open(mode='r', encoding='utf-8') as f:
             
             reader = csv.DictReader(f)
             for row in reader:
@@ -57,20 +55,20 @@ def parse_aslcitizen():
                     original_word = target_mapping[base_gloss] 
                     participant_id = row['Participant ID']
                     video_file = row['Video file']
-                    source_path = os.path.join(ASLCITIZEN_VIDEOS_DIR, video_file)
+                    source_path = ASLCITIZEN_VIDEOS_DIR / video_file
                     
                     # creiamo il nuovo filename (parola_dataset_id.mp4)
                     new_filename = f"{original_word}_aslcitizen_{participant_id}_{video_file}"
-                    destination_path = os.path.join(RAW_DIR, new_filename)
+                    destination_path = RAW_DIR / new_filename
                     
                     # se abbiamo gia lavorato il video in passato (esiste già in data/raw/) => saltiamo 
-                    if os.path.exists(destination_path):
+                    if destination_path.exists():
                         word_counts[original_word] += 1
                         continue
                         
                     # controlliamo che il file video esista fisicamente
-                    if os.path.exists(source_path):
-                        shutil.copy(source_path, destination_path)
+                    if source_path.exists():
+                        shutil.copy(str(source_path), str(destination_path))
                         video_copiati += 1
                         word_counts[original_word] += 1
                         print(f"    ✅ Copiato: {new_filename} (Variante trovata: {gloss})")

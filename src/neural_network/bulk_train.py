@@ -6,10 +6,15 @@ import random
 import argparse
 from pathlib import Path
 
+# Forza stdout in UTF-8 nel caso in cui l'output venga reindirizzato su un file
+if sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
+
 src_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(src_dir))
 
 import config
+
 
 def main():
     parser = argparse.ArgumentParser(description="Esegui il bulk training del modello.")
@@ -153,12 +158,13 @@ def main():
 
             # Estraiamo con le espressioni regolari l'ultima accuratezza e loss stampate
             train_accs = re.findall(
-                r"---> Accuratezza Finale Epoca \(Train\):\s*([0-9.]+)", output
+                r"---> Train Loss:\s*[0-9.]+\s*\|\s*Train Acc:\s*([0-9.]+)", output
             )
             test_accs = re.findall(
-                r"\*\*\* ACCURATEZZA DI TEST FINALE:\s*([0-9.]+)", output
+                r"\*\*\*\s*TEST\s*(?:->|→)\s*Loss:\s*[0-9.]+\s*\|\s*Accuratezza:\s*([0-9.]+)",
+                output,
             )
-            losses = re.findall(r"Loss:\s*([0-9.]+)", output)
+            losses = re.findall(r"\*\*\*\s*TEST\s*(?:->|→)\s*Loss:\s*([0-9.]+)", output)
 
             if train_accs and test_accs and losses:
                 final_train = float(train_accs[-1])
@@ -214,7 +220,9 @@ def main():
     try:
         from playsound import playsound
 
-        sound_path = str(Path(__file__).resolve().parent.parent.parent / "marimba_bloop.mp3")
+        sound_path = str(
+            Path(__file__).resolve().parent.parent.parent / "marimba_bloop.mp3"
+        )
         if os.path.exists(sound_path):
             playsound(sound_path)
         else:

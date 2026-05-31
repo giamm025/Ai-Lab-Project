@@ -95,6 +95,7 @@ class SignLanguageDataset(Dataset):
 
         return data_tensor, label_tensor, length_tensor
 
+
 # --- TEST DEL CAMERIERE ---
 if __name__ == "__main__":
     print("Testo il PyTorch Dataset...")
@@ -113,7 +114,7 @@ if __name__ == "__main__":
     print(f"Lunghezza Reale pre-padding: {prima_lunghezza.item()}")
 
     # Controllo dinamico sul test
-    if primo_video.shape[0] == my_dataset.max_frames and primo_video.shape[1] == 1530:
+    if primo_video.shape[0] == my_dataset.max_frames and primo_video.shape[1] == 402:
         print(
             f"\n-> GRANDIOSO! Il padding dinamico funziona. Il video è stato forzato a {my_dataset.max_frames} frame esatti."
         )

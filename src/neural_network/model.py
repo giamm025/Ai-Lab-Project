@@ -22,7 +22,7 @@ class SignLanguageLSTM(nn.Module):
 
     # parametri:
     # - input_size:  quanti numeri entrano per ogni frame?
-    #                (126 se lavoriamo "Solo Mani", 1530 per "Mani+Volto")
+    #                (126 se lavoriamo "Solo Mani", 402 per "Mani+Volto")
     # - hidden_size: quanto è grande la memoria interna (hidden emmory) della LSTM?
     #                (Es. 64 o 128 neuroni. Piu è grande, più la rete può ricordare, ma più è difficile da addestrare)
     # - num_classes: il numero di canali di uscita... cioe: quali sono le soluzioni possibili?
@@ -37,7 +37,7 @@ class SignLanguageLSTM(nn.Module):
             hidden_size=hidden_size,
             num_layers=num_layers,
             batch_first=True,
-        )  
+        )
         # serve a specificare l'ordine dei numeri nel tensore di input.
         # se batch_first=True,  la LSTM si aspetta (batch_size, seq_len, input_size).
         # se batch_first=False, la LSTM si aspetta (seq_len, batch_size, input_size).
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     )
     # hidden_size = 64  # la grandeza della memoria della LSTM. Per ora mettiamo 64 neuroni di memoria interna (Piu è grande, più la rete può ricordare, ma più è difficile da addestrare)
     hidden_size = 128  # proviamo a raddoppiare la memoria interna della LSTM per vedere se migliora le prestazioni (a costo di tempi di addestramento più lunghi)
-    # hidden_size = 256 # proviamo a raddoppiare ancora la memoria interna della LSTM per vedere se migliora le prestazioni (a costo di tempi di addestramento più lunghi)
+    # hidden_size = 256  # proviamo a raddoppiare ancora la memoria interna della LSTM per vedere se migliora le prestazioni (a costo di tempi di addestramento più lunghi)
     # --------------------- SOLO MANI ---------------------
 
     # creiamo un tensore fittizio (pieno di numeri casuali) tanto per vedere se la rete riesce a processarlo senza errori
@@ -99,10 +99,14 @@ if __name__ == "__main__":
 
     print("--------------------- SOLO MANI ---------------------")
     print(f"Formato Input: {dati_finti_mani.shape}")
-    print(f"Formato Output: {predizioni_mani.shape} -> (Deve essere: [{batch_size} video, {num_classes} parole])")
+    print(
+        f"Formato Output: {predizioni_mani.shape} -> (Deve essere: [{batch_size} video, {num_classes} parole])"
+    )
 
     # --------------------- MANI + VOLTO ---------------------
-    input_size_volto = (1530) # Tutto l'array completo (63 mano sx + 63 mano dx + 1404 volto)
+    input_size_volto = (
+        402  # Tutto l'array (63 mano sx + 63 mano dx + 276 volto filtrato)
+    )
     dati_finti_volto = torch.randn(batch_size, seq_len, input_size_volto)
     modello_volto = SignLanguageLSTM(
         input_size=input_size_volto, hidden_size=hidden_size, num_classes=num_classes
@@ -111,8 +115,12 @@ if __name__ == "__main__":
 
     print("\n--------------------- MANI + VOLTO ---------------------")
     print(f"Formato Input: {dati_finti_volto.shape}")
-    print(f"Formato Output: {predizioni_volto.shape} -> (Deve essere: [{batch_size} video, {num_classes} parole])")
+    print(
+        f"Formato Output: {predizioni_volto.shape} -> (Deve essere: [{batch_size} video, {num_classes} parole])"
+    )
 
     # --------------------- RESOCONTO FINALE ---------------------
     if predizioni_mani.shape == (8, 5) and predizioni_volto.shape == (8, 5):
-        print(f"-> MATEMATICAMENTE PERFETTO! La rete riceve i dati e sputa 5 probabilità (una per parola).")
+        print(
+            f"-> MATEMATICAMENTE PERFETTO! La rete riceve i dati e sputa 5 probabilità (una per parola)."
+        )

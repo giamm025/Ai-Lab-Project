@@ -39,3 +39,6 @@ Thumbs.db
 
 # 8. Documentazione
 docs/
+
+# 9. Altri File Temporanei
+notes/*

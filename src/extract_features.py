@@ -39,7 +39,7 @@ def process_video(video_path, save_path):
             # estriamo i keypoints da MediaPipe
             mp_keypoints = holistic.process(frame_rgb)
 
-            # estraiamo l'array di 1530 numeri e lo salviamo nella lista
+            # estraiamo l'array e lo salviamo nella lista
             keypoints = convert_keypoints(mp_keypoints)
             frames_keypoints.append(keypoints)
 
@@ -59,10 +59,46 @@ def process_video(video_path, save_path):
 # LABBRA — 40 punti (contorno esterno + interno)
 # Coprono la forma della bocca: apertura, arrotondamento, morfemi orali.
 NMM_LIPS = [
-    61, 146, 91, 181, 84, 17, 314, 405, 321, 375,
-    291, 308, 324, 318, 402, 317, 14, 87, 178, 88,
-    95, 185, 40, 39, 37, 0, 267, 269, 270, 409,
-    415, 310, 311, 312, 13, 82, 81, 80, 191, 78,
+    61,
+    146,
+    91,
+    181,
+    84,
+    17,
+    314,
+    405,
+    321,
+    375,
+    291,
+    308,
+    324,
+    318,
+    402,
+    317,
+    14,
+    87,
+    178,
+    88,
+    95,
+    185,
+    40,
+    39,
+    37,
+    0,
+    267,
+    269,
+    270,
+    409,
+    415,
+    310,
+    311,
+    312,
+    13,
+    82,
+    81,
+    80,
+    191,
+    78,
 ]  # 40 landmark
 
 # OCCHIO SINISTRO (dell'inquadrato) — 16 punti (contorno palpebrale)
@@ -70,15 +106,43 @@ NMM_LIPS = [
 # NON alla prospettiva di chi guarda il monitor.
 # Verificato da: face_mesh_connections.py → FACEMESH_LEFT_EYE
 NMM_LEFT_EYE = [
-    249, 263, 362, 373, 374, 380, 381, 382,
-    384, 385, 386, 387, 388, 390, 398, 466,
+    249,
+    263,
+    362,
+    373,
+    374,
+    380,
+    381,
+    382,
+    384,
+    385,
+    386,
+    387,
+    388,
+    390,
+    398,
+    466,
 ]  # 16 landmark
 
 # OCCHIO DESTRO (dell'inquadrato) — 16 punti (contorno palpebrale)
 # Verificato da: face_mesh_connections.py → FACEMESH_RIGHT_EYE
 NMM_RIGHT_EYE = [
-    7, 33, 133, 144, 145, 153, 154, 155,
-    157, 158, 159, 160, 161, 163, 173, 246,
+    7,
+    33,
+    133,
+    144,
+    145,
+    153,
+    154,
+    155,
+    157,
+    158,
+    159,
+    160,
+    161,
+    163,
+    173,
+    246,
 ]  # 16 landmark
 
 # SOPRACCIGLIO SINISTRO (dell'inquadrato) — 10 punti
@@ -92,10 +156,9 @@ NMM_LEFT_EYEBROW = [276, 282, 283, 285, 293, 295, 296, 300, 334, 336]  # 10 land
 NMM_RIGHT_EYEBROW = [46, 52, 53, 55, 63, 65, 66, 70, 105, 107]  # 10 landmark
 
 # Indice unico, ordinato, senza duplicati — usato per il filtraggio
-NMM_FACE_INDICES = sorted(set(
-    NMM_LIPS + NMM_LEFT_EYE + NMM_RIGHT_EYE +
-    NMM_LEFT_EYEBROW + NMM_RIGHT_EYEBROW
-))
+NMM_FACE_INDICES = sorted(
+    set(NMM_LIPS + NMM_LEFT_EYE + NMM_RIGHT_EYE + NMM_LEFT_EYEBROW + NMM_RIGHT_EYEBROW)
+)
 # Totale: 92 landmark × 3 coordinate = 276 valori per frame
 
 
@@ -130,8 +193,10 @@ def convert_keypoints(mp_keypoints):
     # invece di scorrere tutti i 468 landmark, accediamo solo agli indici in NMM_FACE_INDICES
     if face:
         all_landmarks = face.landmark
-        filtered = [[all_landmarks[i].x, all_landmarks[i].y, all_landmarks[i].z]
-                    for i in NMM_FACE_INDICES]
+        filtered = [
+            [all_landmarks[i].x, all_landmarks[i].y, all_landmarks[i].z]
+            for i in NMM_FACE_INDICES
+        ]
         face_arr = np.array(filtered).flatten()  # 92 * 3 = 276 valori
     else:
         face_arr = np.zeros(len(NMM_FACE_INDICES) * 3)  # 276 zeri
@@ -148,13 +213,13 @@ if __name__ == "__main__":
 
     # Leggiamo TUTTI i file mp4 presenti nella cartella data/raw/ (indipendentemente da quale dataset provengano)
     for video_path in RAW_DIR.glob("*.mp4"):
-        
+
         # dal filename estriamo la parola (il formato del nostro dataet è sempre parola_dataset_id.mp4)
         video_filename = video_path.name
         word = video_filename.split("_")[0]
 
         # costruiamo il path in cui effettuare il salvataggio
-        save_path = PROCESSED_DIR / video_path.with_suffix('.npy').name
+        save_path = PROCESSED_DIR / video_path.with_suffix(".npy").name
 
         # se il video è gia stato processato in passato => next
         if save_path.exists():
@@ -167,4 +232,6 @@ if __name__ == "__main__":
     print("\n--- RESOCONTO FINALE ESTRAZIONE ---")
     print(f"Video processati: {video_processati}")
     print(f"Video già esistenti (saltati): {video_saltati}")
-    print(f"Totale tensori pronti per la Rete Neurale: {video_processati + video_saltati}")
+    print(
+        f"Totale tensori pronti per la Rete Neurale: {video_processati + video_saltati}"
+    )

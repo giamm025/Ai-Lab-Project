@@ -74,7 +74,7 @@ I parametri della funzione sono:
 
 def generate_report(solutions, precitions, target_words, save_dir, modalita):
 
-    report = classification_report(solutions, precitions, target_names=target_words)
+    report = classification_report(solutions, precitions, labels=list(range(len(target_words))), target_names=target_words)
     report_path = save_dir / f"classification_report_{modalita}.txt"
 
     with report_path.open("w", encoding="utf-8") as f:

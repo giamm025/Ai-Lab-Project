@@ -20,55 +20,14 @@ def main():
     parser = argparse.ArgumentParser(description="Esegui il bulk training del modello.")
 
     arg_configs = [
-        {
-            "name": "--n_runs",
-            "type": int,
-            "default": 10,
-            "help": "Quante volte ripetere l'addestramento (N)",
-        },
-        {
-            "name": "--modalita",
-            "nargs": "+",
-            "choices": ["SOLO_MANI", "MANI_VOLTO"],
-            "default": ["SOLO_MANI", "MANI_VOLTO"],
-            "help": "Modalità da testare",
-        },
-        {
-            "name": "--epochs",
-            "type": int,
-            "default": 200,
-            "help": "Numero di epoche per l'addestramento (default: 200)",
-        },
-        {
-            "name": "--batch_size",
-            "type": int,
-            "default": 8,
-            "help": "Dimensione del batch per l'addestramento (default: 8)",
-        },
-        {
-            "name": "--patience",
-            "type": int,
-            "default": 10,
-            "help": "Numero di epoche senza miglioramento prima dell'early stopping (default: 10)",
-        },
-        {
-            "name": "--learning_rate",
-            "type": float,
-            "default": 1e-3,
-            "help": "Learning rate per l'ottimizzatore (default: 1e-3)",
-        },
-        {
-            "name": "--hidden_size",
-            "type": int,
-            "default": 64,
-            "help": "Dimensione dell'hidden state della LSTM (default: 64)",
-        },
-        {
-            "name": "--num_layers",
-            "type": int,
-            "default": 1,
-            "help": "Numero di layer della LSTM (default: 1)",
-        },
+        {"name": "--n_runs", "type": int, "default": 10, "help": "Quante volte ripetere l'addestramento (N)"},
+        {"name": "--modalita", "nargs": "+", "choices": ["SOLO_MANI", "MANI_VOLTO"], "default": ["SOLO_MANI", "MANI_VOLTO"], "help": "Modalità da testare"},
+        {"name": "--epochs", "type": int, "default": 200, "help": "Numero di epoche per l'addestramento (default: 200)"},
+        {"name": "--batch_size", "type": int, "default": 8, "help": "Dimensione del batch per l'addestramento (default: 8)"},
+        {"name": "--patience", "type": int, "default": 10, "help": "Numero di epoche senza miglioramento prima dell'early stopping (default: 10)"},
+        {"name": "--learning_rate", "type": float, "default": 1e-3, "help": "Learning rate per l'ottimizzatore (default: 1e-3)"},
+        {"name": "--hidden_size", "type": int, "default": 64, "help": "Dimensione dell'hidden state della LSTM (default: 64)"},
+        {"name": "--num_layers", "type": int, "default": 1, "help": "Numero di layer della LSTM (default: 1)"},
     ]
 
     for arg in arg_configs:
@@ -99,20 +58,14 @@ def main():
         for run_idx in range(N_RUNS):
             run = run_idx + 1
             seed = SEEDS[run_idx]
-            print(
-                f"🔄 [{mod}] Esecuzione Addestramento {run}/{N_RUNS} (Seed: {seed}) in corso..."
-            )
+            print(f"🔄 [{mod}] Esecuzione Addestramento {run}/{N_RUNS} (Seed: {seed}) in corso...")
 
             current_dir = Path(__file__).resolve().parent
             train_script_path = current_dir / "train.py"
 
             # Assicuriamoci che python trovi config.py impostando il PYTHONPATH alla cartella src/
             env = os.environ.copy()
-            env["PYTHONPATH"] = (
-                str(src_dir) + os.pathsep + env.get("PYTHONPATH", "")
-                if env.get("PYTHONPATH")
-                else str(src_dir)
-            )
+            env["PYTHONPATH"] = str(src_dir) + os.pathsep + env.get("PYTHONPATH", "") if env.get("PYTHONPATH") else str(src_dir)
 
             # Forza l'output UTF-8 per il processo figlio così scriverà le emoji senza fare crash
             env["PYTHONIOENCODING"] = "utf-8"
@@ -157,14 +110,12 @@ def main():
             output = process.stdout
 
             # Estraiamo con le espressioni regolari l'ultima accuratezza e loss stampate
-            train_accs = re.findall(
-                r"---> Train Loss:\s*[0-9.]+\s*\|\s*Train Acc:\s*([0-9.]+)", output
-            )
+            train_accs = re.findall(r"---> Train Loss:\s*[0-9.]+\s*\|\s*Train Acc:\s*([0-9.]+)", output)
             test_accs = re.findall(
-                r"\*\*\*\s*TEST\s*(?:->|→)\s*Loss:\s*[0-9.]+\s*\|\s*Accuratezza:\s*([0-9.]+)",
+                r"\*\*\*\s*ACCURATEZZA DI TEST FINALE:\s*([0-9.]+)\s*\|\s*Loss:\s*[0-9.]+\s*\*\*\*",
                 output,
             )
-            losses = re.findall(r"\*\*\*\s*TEST\s*(?:->|→)\s*Loss:\s*([0-9.]+)", output)
+            losses = re.findall(r"\*\*\*\s*ACCURATEZZA DI TEST FINALE:\s*[0-9.]+\s*\|\s*Loss:\s*([0-9.]+)\s*\*\*\*", output)
 
             if train_accs and test_accs and losses:
                 final_train = float(train_accs[-1])
@@ -179,13 +130,9 @@ def main():
                         "test_acc": final_test,
                     }
                 )
-                print(
-                    f"  ✅ [{mod}] Run {run} completata: Loss = {final_loss:.4f} | Train Acc = {final_train:.4f} | Test Acc = {final_test:.4f}\n"
-                )
+                print(f"  ✅ [{mod}] Run {run} completata: Loss = {final_loss:.4f} | Train Acc = {final_train:.4f} | Test Acc = {final_test:.4f}\n")
             else:
-                print(
-                    f"  ⚠️ [{mod}] Run {run} completata, ma non sono riuscito a leggere tutte le metriche dal log.\n"
-                )
+                print(f"  ⚠️ [{mod}] Run {run} completata, ma non sono riuscito a leggere tutte le metriche dal log.\n")
 
     # ==========================================
     # RESOCONTO FINALE
@@ -203,9 +150,7 @@ def main():
             continue
 
         for res in mod_results:
-            print(
-                f"  Run {res['run']:02d} -> Loss: {res['loss']:.4f} | Train: {res['train_acc']:.4f} | Test: {res['test_acc']:.4f}"
-            )
+            print(f"  Run {res['run']:02d} -> Loss: {res['loss']:.4f} | Train: {res['train_acc']:.4f} | Test: {res['test_acc']:.4f}")
 
         print("  ---------------------------------------------------")
         avg_loss = sum(r["loss"] for r in mod_results) / len(mod_results)
@@ -220,17 +165,13 @@ def main():
     try:
         from playsound import playsound
 
-        sound_path = str(
-            Path(__file__).resolve().parent.parent.parent / "marimba_bloop.mp3"
-        )
+        sound_path = str(Path(__file__).resolve().parent.parent.parent / "marimba_bloop.mp3")
         if os.path.exists(sound_path):
             playsound(sound_path)
         else:
             print(f"Sound file not found at {sound_path}")
     except ImportError:
-        print(
-            "\nplaysound module not installed. Run 'pip install playsound==1.2.2' to hear the completion sound."
-        )
+        print("\nplaysound module not installed. Run 'pip install playsound==1.2.2' to hear the completion sound.")
     except Exception as e:
         print(f"\nCould not play sound: {e}")
 

@@ -14,10 +14,11 @@ Arguments:
 
 The script:
     1. Opens the video with OpenCV and runs it through MediaPipe Holistic.
-    2. Extracts keypoints per frame using convert_keypoints() from extract_features.py.
-    3. Builds a (1, seq_len, input_size) PyTorch tensor.
-    4. Loads the trained SignLanguageLSTM checkpoint via GET_MODEL_PATH(modalita).
-    5. Prints the predicted word and the softmax confidence score.
+    2. Displays the video in real-time with MediaPipe keypoint overlays.
+    3. Extracts keypoints per frame using convert_keypoints() from extract_features.py.
+    4. Builds a (1, seq_len, input_size) PyTorch tensor.
+    5. Loads the trained SignLanguageLSTM checkpoint via GET_MODEL_PATH(modalita).
+    6. Prints the predicted word and the softmax confidence score.
 """
 
 import sys
@@ -28,14 +29,6 @@ from pathlib import Path
 # sys.path fix — ensures that "src/" is on the path so we can import
 # config, extract_features, and neural_network.model regardless of the
 # working directory from which this script is called.
-# Directory layout:
-#   Ai-Lab-Project/
-#       src/
-#           predict_single.py   <-- this file
-#           config.py
-#           extract_features.py
-#           neural_network/
-#               model.py
 # ---------------------------------------------------------------------------
 SRC_DIR = Path(__file__).resolve().parent      # .../Ai-Lab-Project/src
 sys.path.insert(0, str(SRC_DIR))
@@ -67,14 +60,6 @@ def infer_hyperparams_from_checkpoint(state_dict: dict) -> tuple[int, int]:
     """
     Reads hidden_size and num_layers directly from the checkpoint weights
     so we never have to hardcode them or keep them in sync manually.
-
-    LSTM weight layout (PyTorch):
-      lstm.weight_ih_l{k}  shape: (4 * hidden_size, input_size_of_layer_k)
-      lstm.weight_hh_l{k}  shape: (4 * hidden_size, hidden_size)
-
-    We derive:
-      hidden_size = weight_hh_l0.shape[1]        (columns of recurrent weight)
-      num_layers  = number of distinct layer keys  (weight_hh_l0, l1, l2, …)
     """
     hidden_size = state_dict["lstm.weight_hh_l0"].shape[1]
     num_layers  = sum(1 for k in state_dict if k.startswith("lstm.weight_hh_l"))
@@ -91,7 +76,6 @@ def load_model(modalita: str, device: torch.device) -> SignLanguageLSTM:
             "Make sure you have trained the model with this modalita first."
         )
 
-    # Load raw weights first so we can read the architecture from them
     state_dict = torch.load(model_path, map_location=device)
     hidden_size, num_layers = infer_hyperparams_from_checkpoint(state_dict)
 
@@ -115,10 +99,8 @@ def load_model(modalita: str, device: torch.device) -> SignLanguageLSTM:
 def extract_keypoints_from_video(video_path: str, modalita: str) -> np.ndarray:
     """
     Opens the video with OpenCV, runs MediaPipe Holistic on every frame,
-    and returns a (seq_len, input_size) NumPy array of keypoints.
-
-    For "SOLO_MANI" we slice only the first 126 values (left + right hand)
-    from the full 402-feature vector that convert_keypoints() always returns.
+    displays the tracking visually, and returns a (seq_len, input_size) 
+    NumPy array of keypoints.
     """
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -126,6 +108,10 @@ def extract_keypoints_from_video(video_path: str, modalita: str) -> np.ndarray:
 
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     fps          = cap.get(cv2.CAP_PROP_FPS)
+    
+    # Calculate the delay to play back close to original speed (default to ~33ms if fps fails)
+    delay = int(1000 / fps) if fps > 0 else 30
+    
     print(f"[INFO] Video: {Path(video_path).name} | {total_frames} frames @ {fps:.1f} fps")
 
     frames_keypoints = []
@@ -143,7 +129,44 @@ def extract_keypoints_from_video(video_path: str, modalita: str) -> np.ndarray:
 
             frame_rgb  = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             mp_results = holistic.process(frame_rgb)
-            keypoints  = convert_keypoints(mp_results)   # always 402 values
+            
+            # --- DRAWING MEDIAPIPE HUD ---
+            # Left Hand
+            mp.solutions.drawing_utils.draw_landmarks(
+                frame, mp_results.left_hand_landmarks, mp.solutions.holistic.HAND_CONNECTIONS,
+                mp.solutions.drawing_utils.DrawingSpec(color=(121, 22, 76),  thickness=2, circle_radius=4),
+                mp.solutions.drawing_utils.DrawingSpec(color=(121, 44, 250), thickness=2, circle_radius=2),
+            )
+            # Right Hand
+            mp.solutions.drawing_utils.draw_landmarks(
+                frame, mp_results.right_hand_landmarks, mp.solutions.holistic.HAND_CONNECTIONS,
+                mp.solutions.drawing_utils.DrawingSpec(color=(245, 117, 66), thickness=2, circle_radius=4),
+                mp.solutions.drawing_utils.DrawingSpec(color=(245, 66,  230), thickness=2, circle_radius=2),
+            )
+            # Face
+            mp.solutions.drawing_utils.draw_landmarks(
+                frame, mp_results.face_landmarks, mp.solutions.holistic.FACEMESH_CONTOURS,
+                mp.solutions.drawing_utils.DrawingSpec(color=(80, 110, 10),  thickness=1, circle_radius=1),
+                mp.solutions.drawing_utils.DrawingSpec(color=(80, 256, 121), thickness=1, circle_radius=1),
+            )
+            
+            # Overlay frame info
+            cv2.putText(frame, f"Processing Frame: {frame_idx + 1}/{total_frames}", (20, 40), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+            cv2.putText(frame, "Press 'Q' to skip playback", (20, 75), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+
+            cv2.imshow("ASL Video Analysis Tracker", frame)
+            
+            # Handle early abort of playback (keeps processing logic intact up to the skip)
+            if cv2.waitKey(delay) & 0xFF == ord('q'):
+                print("\n[INFO] Playback skipped by user. Processing remaining frames silently...")
+                cv2.destroyWindow("ASL Video Analysis Tracker")
+                delay = 1 # Speed up to process the rest instantly
+                # Note: We don't break, we just hide the window so extraction finishes.
+
+            # --- EXTRACTING VALUES ---
+            keypoints = convert_keypoints(mp_results)   # always 402 values
 
             # If we only want hands, keep the first 126 features
             if modalita == "SOLO_MANI":
@@ -153,6 +176,7 @@ def extract_keypoints_from_video(video_path: str, modalita: str) -> np.ndarray:
             frame_idx += 1
 
     cap.release()
+    cv2.destroyAllWindows()
 
     if not frames_keypoints:
         raise ValueError("No frames were extracted from the video.")
@@ -165,10 +189,7 @@ def extract_keypoints_from_video(video_path: str, modalita: str) -> np.ndarray:
 def run_inference(seq: np.ndarray, model: SignLanguageLSTM, device: torch.device):
     """
     Converts the (seq_len, input_size) NumPy array to a (1, seq_len, input_size)
-    PyTorch tensor, passes it through the model, and returns:
-      - predicted_word (str)
-      - confidence      (float, 0-100)
-      - all_probs       (dict {word: probability%})
+    PyTorch tensor, passes it through the model, and returns probabilities.
     """
     seq_len    = seq.shape[0]
     tensor     = torch.tensor(seq, dtype=torch.float32).unsqueeze(0).to(device)  # (1, T, F)

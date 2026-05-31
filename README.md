@@ -41,4 +41,12 @@ Ai-Lab-Project/
 ```
 
 
-Comando per addestrare i modelli (Ai-Lab-Project/src): python train.py --modalita {SOLO_MANI, MANI_VOLTO}
+Comandi: 
+- python src/train.py --modalita {SOLO_MANI, MANI_VOLTO}
+- python src/bulk_train.py --modalita {SOLO_MANI, MANI_VOLTO}
+- python src/evaluate_model.py --model_path models/nome_del_modello.pth
+- python src/predict_single.py --video_path data/raw/nome_del_video.mp4
+- python src/predict_single.py --video_path data/raw/nome_del_video.mp4 --modalita {SOLO_MANI, MANI_VOLTO}
+- python src/webcam_inference.py
+- python src/webcam_inference.py --modalita {SOLO_MANI, MANI_VOLTO}
+- python src/webcam_inference.py --camera_index 1

@@ -12,7 +12,7 @@ if sys.stdout.encoding.lower() != "utf-8":
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from config import TARGET_WORDS, PROCESSED_DIR, MODELS_DIR, RESULTS_DIR, SEED
+from config import TARGET_WORDS, PROCESSED_DIR, SEED, GET_MODEL_PATH, GET_EXPERIMENT_DIR, GET_CSV_PATH
 from dataset import SignLanguageDataset
 from model import SignLanguageLSTM
 
@@ -203,8 +203,9 @@ def test_loop(dataloader, model, loss_fn):
 """
 print(f"Inizio addestramento in modalità: {MODALITA}")
 
-# prendiamo il path in cui salvare il modello (root/models/best_model_{MODALITA}.pth)
-model_save_path = MODELS_DIR / f"best_model_{MODALITA}.pth"
+model_save_path = GET_MODEL_PATH(MODALITA)
+experiment_save_dir = GET_EXPERIMENT_DIR(MODALITA)
+csv_path = GET_CSV_PATH(MODALITA)
 
 # Configurazioni Early Stopping e CSV
 history = []
@@ -239,17 +240,17 @@ for epoch in range(EPOCHS):
             break
 
 # --- SALVATAGGIO DEL CSV FINALE ---
-csv_path = RESULTS_DIR / f"training_history_{MODALITA}.csv"
-with open(csv_path, mode="w", newline="") as file:
+with open(csv_path, mode="w", newline="", encoding="utf-8") as file:
     writer = csv.writer(file)
     writer.writerow(["Epoch", "Train_Loss", "Train_Acc", "Val_Loss", "Val_Acc"])
     writer.writerows(history)
+
 
 # Carichiamo il miglior modello salvato prima di eseguire il test.
 print("\n" + "=" * 50)
 print("🔬 VALUTAZIONE FINALE SUL TEST SET (una tantum)")
 print("=" * 50)
-model.load_state_dict(torch.load(model_save_path, map_location=device))
+model.load_state_dict(torch.load(model_save_path, map_location=device, weights_only=True))
 final_test_loss, final_test_acc = test_loop(test_dataloader, model, loss_fn)
 print(f"*** ACCURATEZZA DI TEST FINALE: {final_test_acc:.4f} | Loss: {final_test_loss:.4f} ***")
 print("=" * 50)

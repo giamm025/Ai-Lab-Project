@@ -20,6 +20,7 @@ for directory in [RAW_DIR, PROCESSED_DIR, DATASETS_DIR, MODELS_DIR, RESULTS_DIR]
 
 # le parole che utilizzeremo per costruire il nostro dataset, addestrare e testare il modello (prendendo solo i video relativi a queste parole)
 TARGET_WORDS = ["happen", "finally", "late", "not-yet", "misunderstand", "understand"]
+SEED = 42
 
 """ 
 ==========================================================================

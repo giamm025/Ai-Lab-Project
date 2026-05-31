@@ -12,7 +12,7 @@ if sys.stdout.encoding.lower() != "utf-8":
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from config import TARGET_WORDS, PROCESSED_DIR, MODELS_DIR, RESULTS_DIR
+from config import TARGET_WORDS, PROCESSED_DIR, MODELS_DIR, RESULTS_DIR, SEED
 from dataset import SignLanguageDataset
 from model import SignLanguageLSTM
 
@@ -88,6 +88,8 @@ PATIENCE = args.patience
 LEARNING_RATE = args.learning_rate
 HIDDEN_SIZE = args.hidden_size
 NUM_LAYERS = args.num_layers
+if args.seed != SEED:
+    SEED = args.seed
 
 torch.manual_seed(SEED)
 if torch.cuda.is_available():

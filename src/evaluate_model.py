@@ -10,7 +10,7 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report
 from torch.utils.data import DataLoader, random_split
 import argparse
-from config import MODELS_DIR, RESULTS_DIR, PROCESSED_DIR, TARGET_WORDS, LABEL_MAP
+from config import MODELS_DIR, RESULTS_DIR, PROCESSED_DIR, TARGET_WORDS, LABEL_MAP, SEED
 from neural_network.dataset import SignLanguageDataset
 from neural_network.model import SignLanguageLSTM
 
@@ -59,7 +59,7 @@ def plot_learning_curves(csv_path, save_dir, modalita):
 def evaluate_and_plot_confusion_matrix(model_path, dataset, modalita, save_dir, device):
 
     # Ovviamente usiamo lo stesso seed del train.py per eseguire il test sempre sugli stessi video (altrimenti rischiamo che capitino video presi dal training set)
-    torch.manual_seed(42) 
+    torch.manual_seed(SEED) 
     train_size = int(0.8 * len(dataset))
     test_size = len(dataset) - train_size
     _, test_data = random_split(dataset, [train_size, test_size]) 

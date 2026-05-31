@@ -26,9 +26,7 @@ models/*.pth
 models/*.weights
 
 # 5. Log e Risultati Temporanei
-results/*.*
-results/MANI_VOLTO/*.*
-results/SOLO_MANI/*.*
+results/
 
 # 6. File di Sistema (Windows/Mac)
 .DS_Store

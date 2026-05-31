@@ -24,6 +24,42 @@ SEED = 42
 
 """ 
 ==========================================================================
+GESTIONE VERSIONI
+==========================================================================
+L'idea è che ogni volta che implementiamo una nuova feature IMPORTANTE (es allarghiamo il dataset o tagliamo i keypoints del volto) 
+documentiamo il tutto come fosse un nuovo modello proprio. una nuova versione. Se non facciamo cosi andremmo sempre a sovrascrivere 
+il modello preccedente senz amantenere la "cronologia" dei miglioramenti. 
+Fino ad ora ho pensato a queste versioni:
+- v1_normale
+- v2_allargamento_dataset
+- v3_aumento_epoche
+- v4_aumento_hidden_size
+- v5_filter_facial_landmarks
+- v6_early_stopping
+"""
+EXPERIMENT_VERSION = "v6"
+EXPERIMENT_DESC = "early_stopping"
+EXPERIMENT_SUFFIX = f"{EXPERIMENT_VERSION}_{EXPERIMENT_DESC}".strip('_')
+
+
+"""Restituisce il path corretto per salvare/caricare il modello in base alla modalità."""
+def GET_MODEL_PATH(modalita):
+    filename = f"model_{EXPERIMENT_SUFFIX}_{modalita}.pth"
+    return MODELS_DIR / filename
+
+"""Restituisce la cartella specifica dell'esperimento dentro results/ e la crea se non esiste."""
+def GET_EXPERIMENT_DIR(modalita):
+    exp_dir = RESULTS_DIR / EXPERIMENT_SUFFIX / modalita
+    exp_dir.mkdir(parents=True, exist_ok=True)
+    return exp_dir
+
+"""Restituisce il path del file CSV per l'esperimento."""
+def GET_CSV_PATH(modalita):
+    csv_path = RESULTS_DIR / EXPERIMENT_SUFFIX / modalita / f"training_history.csv"
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+    return csv_path
+""" 
+==========================================================================
 GESTIONE ETICHETTE (LABELS)
 ==========================================================================
 """

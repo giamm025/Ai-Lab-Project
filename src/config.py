@@ -31,7 +31,7 @@ documentiamo il tutto come fosse un nuovo modello proprio. una nuova versione. S
 il modello preccedente senz amantenere la "cronologia" dei miglioramenti. 
 """
 EXPERIMENT_VERSION = "v3"
-EXPERIMENT_DESC = "L"
+EXPERIMENT_DESC = "L_prova_webcam"
 EXPERIMENT_SUFFIX = f"{EXPERIMENT_VERSION}_{EXPERIMENT_DESC}".strip('_')
 
 

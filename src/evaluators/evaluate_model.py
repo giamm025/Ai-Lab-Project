@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).resolve().parent))
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 import torch
 import pandas as pd
@@ -11,7 +11,7 @@ from sklearn.metrics import confusion_matrix, classification_report
 from torch.utils.data import DataLoader, random_split
 import argparse
 
-from config import MODELS_DIR, RESULTS_DIR, PROCESSED_DIR, TARGET_WORDS, LABEL_MAP, SEED, GET_MODEL_PATH, GET_EXPERIMENT_DIR, GET_CSV_PATH
+from config import MODELS_DIR, RESULTS_DIR, PROCESSED_DIR, TARGET_WORDS, LABEL_MAP, SEED
 from neural_network.dataset import SignLanguageDataset
 from neural_network.model import SignLanguageLSTM
 
@@ -20,14 +20,11 @@ from neural_network.model import SignLanguageLSTM
 # =====================================================================
 
 """Genera il grafico con le curve di Loss e Accuracy, per un confronto Train vs Val"""
-
-
 def plot_learning_curves(csv_path, save_dir, modalita):
-
+    
     if not csv_path.exists():
-        print("CSV non trovato! Fai prima il train.")
+        print(f"⚠️ CSV non trovato in {csv_path}! Salto il grafico Learning Curve.")
         return
-
     # Prepariamo una "tela" bianca per il grafico grande 10x5 pollici
     plt.figure(figsize=(10, 5))
 
@@ -70,11 +67,9 @@ I parametri della funzione sono:
     - save_dir:     cartella dove salvare il report
     - modalita:     SOLO_MANI o MANI_VOLTO (per distinguere i file dei due esperimenti)
 """
-
-
 def generate_report(solutions, precitions, target_words, save_dir, modalita):
-
-    report = classification_report(solutions, precitions, labels=list(range(len(target_words))), target_names=target_words)
+    
+    report = classification_report(solutions, precitions, labels=list(range(len(target_words))), target_names=target_words, zero_division=0)
     report_path = save_dir / f"classification_report_{modalita}.txt"
 
     with report_path.open("w", encoding="utf-8") as f:
@@ -92,8 +87,6 @@ Da cui ne deduciamo che:
     - confusion_matrix[x:x]: quante volte il modello ha indovinato correttamente la parola x (la risposta corretta era x ma il modello ha detto x)
     - confusion_matrix[x:y]: quante volte il modello ha confuso la parola x con la parola y  (la risposta corretta era x ma il modello ha detto y)
 """
-
-
 def draw_confusion_matrix(solutions, precitions, target_words, save_dir, modalita):
     cm = confusion_matrix(solutions, precitions)
 
@@ -113,9 +106,8 @@ def draw_confusion_matrix(solutions, precitions, target_words, save_dir, modalit
 # =====================================================================
 # LOGICA DI VALUTAZIONE CORE
 # =====================================================================
+# =====================================================================
 """Ri-divide il Dataset per ottenere lo stesso Test Set utilizzato alla fine dell'addestramento)"""
-
-
 def create_test_dataloader(dataset):
     torch.manual_seed(SEED)
     total = len(dataset)
@@ -124,21 +116,21 @@ def create_test_dataloader(dataset):
     test_size = total - train_size - val_size
 
     _, _, test_data = random_split(dataset, [train_size, val_size, test_size])
-
     return DataLoader(test_data, batch_size=8, shuffle=False)
 
-
-"""Carica il modello gia addestrato (.pth) e lo prepara per la valutazione"""
-
-
-def load_trained_model(model_path, modalita, device):
-    input_size = 126 if modalita == "SOLO_MANI" else 402
+def load_trained_model(model_path, modalita, version, device):
+    # RETROCOMPATIBILITÀ: Se il modello è v1 ed è MANI_VOLTO, si aspetta 1530 ingressi, altrimenti 402
+    if modalita == "SOLO_MANI":
+        input_size = 126
+    elif modalita == "MANI_VOLTO":
+        input_size = 1530 if version == "v1" else 402
+    else: 
+        raise ValueError("Modalità sconosciuta! Scegli SOLO_MANI o MANI_VOLTO.")    
     num_classes = len(TARGET_WORDS)
 
     model = SignLanguageLSTM(input_size=input_size, hidden_size=64, num_classes=num_classes).to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
-
     return model
 
 
@@ -149,8 +141,6 @@ NB. Questa esecuzione è diversa da quella di train.py!!!! Li eseguiamo il test 
     e decretare un "miglior modello" da salvare. QUI, invece, eseguiamo il test SOLO UNA VOLTA, sul MODELLO MIGLIORE per 
     valutare il modello finale e generare i grafici finali. NON avrebbe senso unificare le due logiche.
 """
-
-
 def run_evaluation(model, dataloader, modalita, device):
     precitions = []
     solutions = []
@@ -160,7 +150,6 @@ def run_evaluation(model, dataloader, modalita, device):
         for x, y, lengths in dataloader:
             if modalita == "SOLO_MANI":
                 x = x[:, :, :126]
-
             x, y, lengths = x.to(device), y.to(device), lengths.cpu()
 
             outputs = model(x, lengths)
@@ -176,33 +165,47 @@ def run_evaluation(model, dataloader, modalita, device):
 # MAIN: ESECUZIONE DELLA VALUTAZIONE
 # =====================================================================
 if __name__ == "__main__":
-
+    
     # ------------------------------------------ PARSER ------------------------------------------
     parser = argparse.ArgumentParser(description="Valuta il modello e genera grafici.")
-    parser.add_argument("--modalita", type=str, choices=["SOLO_MANI", "MANI_VOLTO"], default="MANI_VOLTO")
+    parser.add_argument("--modalita", type=str, choices=["SOLO_MANI", "MANI_VOLTO"], required=True)
+    parser.add_argument("--version", type=str, required=True, help="Es. v1, v2")
+    parser.add_argument("--desc", type=str, default="", help="Es. S, M, L")
     args = parser.parse_args()
+    
     MODALITA = args.modalita
-
+    
     # ------------------------------------------- PATHS ---------------------------------------
-    SAVE_PATH = GET_EXPERIMENT_DIR(MODALITA)
-    model_file = GET_MODEL_PATH(MODALITA)
-    csv_file = GET_CSV_PATH(MODALITA)
-
-    # Assicuriamoci che la cartella esista
+    suffix = f"{args.version}_{args.desc}".strip('_')
+    SAVE_PATH = RESULTS_DIR / suffix / MODALITA
+    model_file = MODELS_DIR / f"model_{suffix}_{MODALITA}.pth"
+    csv_file = SAVE_PATH / "training_history.csv"
     SAVE_PATH.mkdir(parents=True, exist_ok=True)
 
     # ----------------------------------- FASE DI TEST E VALUTAZIONE ------------------------------------
-    print(f"\n--- AVVIO VALUTAZIONE: {MODALITA} ---")
+    print(f"\n--- AVVIO VALUTAZIONE: {MODALITA} | Esperimento: {suffix} ---")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if not model_file.exists():
-        print(f"❌ Errore: Modello non trovato ({model_file}). Addestra prima la rete!")
-        sys.exit()
+        print(f"❌ Errore: Modello non trovato ({model_file}). Salto valutazione.")
+        sys.exit(1)
 
     # PREPARAZIONE TEST
-    full_dataset = SignLanguageDataset(PROCESSED_DIR)
+    # eseguiamo la fase di test utilizzando IL DATASET SPECIFICO utilizzato durante l'addestramento di quel modello
+    # deve per forza essere nel formato "vX_processed_Y" (es. v1_processed_S) 
+    dataset_folder_name = f"{args.version}_processed_{args.desc}"
+    dynamic_processed_dir = PROCESSED_DIR.parent / dataset_folder_name
+    
+    # Controllo di sicurezza: se per caso la cartella specifica non esiste, usa quella di default
+    if not dynamic_processed_dir.exists():
+        print(f"⚠️ Cartella specifica non trovata ({dynamic_processed_dir}). Uso PROCESSED_DIR di default.")
+        dynamic_processed_dir = PROCESSED_DIR
+    else:
+        print(f"📦 Dataset rilevato con successo: {dataset_folder_name}")
+
+    full_dataset = SignLanguageDataset(dynamic_processed_dir)
     test_dataloader = create_test_dataloader(full_dataset)
-    model = load_trained_model(model_file, MODALITA, device)
+    model = load_trained_model(model_file, MODALITA, args.version, device)
     solutions, precitions = run_evaluation(model, test_dataloader, MODALITA, device)
     target_words = [word for word, idx in sorted(LABEL_MAP.items(), key=lambda item: item[1])]
 

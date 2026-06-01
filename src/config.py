@@ -29,16 +29,9 @@ GESTIONE VERSIONI
 L'idea è che ogni volta che implementiamo una nuova feature IMPORTANTE (es allarghiamo il dataset o tagliamo i keypoints del volto) 
 documentiamo il tutto come fosse un nuovo modello proprio. una nuova versione. Se non facciamo cosi andremmo sempre a sovrascrivere 
 il modello preccedente senz amantenere la "cronologia" dei miglioramenti. 
-Fino ad ora ho pensato a queste versioni:
-- v1_normale
-- v2_allargamento_dataset
-- v3_aumento_epoche
-- v4_aumento_hidden_size
-- v5_filter_facial_landmarks
-- v6_early_stopping
 """
-EXPERIMENT_VERSION = "v6"
-EXPERIMENT_DESC = "early_stopping"
+EXPERIMENT_VERSION = "v3"
+EXPERIMENT_DESC = "L"
 EXPERIMENT_SUFFIX = f"{EXPERIMENT_VERSION}_{EXPERIMENT_DESC}".strip('_')
 
 

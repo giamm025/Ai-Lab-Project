@@ -4,11 +4,11 @@
 
        happen       0.00      0.00      0.00         1
       finally       0.00      0.00      0.00         2
-         late       0.33      1.00      0.50         2
+         late       0.00      0.00      0.00         2
       not-yet       0.00      0.00      0.00         0
 misunderstand       0.00      0.00      0.00         0
-   understand       0.00      0.00      0.00         1
+   understand       0.17      1.00      0.29         1
 
-     accuracy                           0.33         6
-    macro avg       0.06      0.17      0.08         6
- weighted avg       0.11      0.33      0.17         6
+     accuracy                           0.17         6
+    macro avg       0.03      0.17      0.05         6
+ weighted avg       0.03      0.17      0.05         6

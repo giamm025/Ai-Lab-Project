@@ -88,7 +88,8 @@ train_size_base = int(0.70 * total_base)
 val_size_base = int(0.15 * total_base)
 test_size_base = total_base - train_size_base - val_size_base
 
-training_base, val_data, test_data = random_split(base_dataset, [train_size_base, val_size_base, test_size_base])
+split_generator = torch.Generator().manual_seed(SEED)
+training_base, val_data, test_data = random_split(base_dataset, [train_size_base, val_size_base, test_size_base], generator=split_generator)
 
 # Avvolgiamo il train set con i cloni aumentati, passando la STESSA cartella dinamica
 training_data = AugmentedTrainingWrapper(training_base, dynamic_processed_dir)

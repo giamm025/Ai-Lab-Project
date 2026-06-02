@@ -204,6 +204,6 @@ print("📊 Generazione dei grafici comparativi (Raggruppati per Metrica)...")
 for (v, mod), sizes_data in plot_data.items():
     if sizes_data:
         graph_title = f"Confronto Prestazioni Dataset - {v} ({mod})"
-        graph_filename = RESULTS_DIR / f"confronto_metriche_{v}_{mod}.png"
+        graph_filename = RESULTS_DIR / f"confronto_metriche" / f"confronto_metriche_{v}_{mod}.png"
         generate_comparison_chart(graph_title, sizes_data, graph_filename)
         print(f"    ✅ Grafico salvato in: {graph_filename}")

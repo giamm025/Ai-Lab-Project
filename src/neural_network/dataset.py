@@ -13,9 +13,10 @@ from config import PROCESSED_DIR, LABEL_MAP
 class SignLanguageDataset(Dataset):
 
     # costruttore del Dataset: prepara la lista dei file, delle etichette e calcola il padding
-    def __init__(self, data_dir):
+    def __init__(self, data_dir, exclude_augmented=False):
 
         self.data_dir = data_dir  # il percorso alla cartella in cui abbiamo salvato i file .npy contenenti le coordinate delle mani di ogni video (nel nostro caso PROCESSED_DIR)
+        self.exclude_augmented = exclude_augmented # FLAG CRITICO: Se True, ignora i file generati dall'augmentation
         self.filenames = (
             []
         )  # conterrà la lista dei file .npy contenenti le coordinate delle mani di ogni video
@@ -29,6 +30,9 @@ class SignLanguageDataset(Dataset):
 
             # se NON è un file .npy lo saltiamo
             if filename.endswith(".npy"):
+                # saltiamo i file che contengono '_aug_' nel nome (lo useremo in fase di test per evitare di testare il modello su video uguali a quelli di train... ma semplicemente con le mani scambiate)
+                if self.exclude_augmented and "_aug_" in filename:
+                    continue
 
                 # estriamo la singola parole (poiche ogni filename è tipo "hello_12345.npy" possiamo splittare su '_')
                 word = filename.split("_")[0]
@@ -95,6 +99,56 @@ class SignLanguageDataset(Dataset):
 
         return data_tensor, label_tensor, length_tensor
 
+
+# =====================================================================
+# classe wrapper per il training che aggiunge i video derivanti dall'augmentation, MA SOLO SE siamo in fase di TRAIN
+# altrimenti rischiamo di testare il modello su video che sono identici a quelli di train, ma semplicemente con le mani scambiate 
+# =====================================================================
+class AugmentedTrainingWrapper(Dataset):
+    def __init__(self, base_train_subdataset, data_dir):
+        self.base_train = base_train_subdataset
+        self.data_dir = data_dir
+        
+        # Estrattore dei nomi dei file originali assegnati al train
+        self.allowed_originals = set(base_train_subdataset.dataset.filenames[i] for i in base_train_subdataset.indices)
+        
+        # Cerchiamo tutti i file aumentati che derivano DA QUESTI specifici file di train
+        self.augmented_filenames = []
+        self.augmented_labels = []
+        
+        for filename in os.listdir(data_dir):
+            if filename.endswith(".npy") and "_aug_" in filename:
+                parts = filename.split("_aug_")
+                original_name = parts[0] + ".npy"
+                
+                # Se l'originale è in questo training set, allora il suo clone è legale!
+                if original_name in self.allowed_originals:
+                    self.augmented_filenames.append(filename)
+                    word = filename.split("_")[0]
+                    self.augmented_labels.append(base_train_subdataset.dataset.labels[base_train_subdataset.dataset.filenames.index(filename)])
+
+        print(f"   ↳ Trovati {len(self.augmented_filenames)} file aumentati legali per il Training Set.")
+
+    def __len__(self):
+        return len(self.base_train) + len(self.augmented_filenames)
+
+    def __getitem__(self, idx):
+        if idx < len(self.base_train):
+            return self.base_train[idx]
+        
+        # Carichiamo i dati aumentati
+        aug_idx = idx - len(self.base_train)
+        filename = self.augmented_filenames[aug_idx]
+        label = self.augmented_labels[aug_idx]
+        
+        data = np.load(self.data_dir / filename)
+        real_len = data.shape[0]
+        
+        # Applichiamo il medesimo padding usando la variabile max_frames del dataset base
+        padding = np.zeros((self.base_train.dataset.max_frames - real_len, data.shape[1]))
+        data = np.vstack((data, padding))
+        
+        return torch.tensor(data, dtype=torch.float32), torch.tensor(label, dtype=torch.long), torch.tensor(real_len, dtype=torch.long)
 
 # --- TEST DEL CAMERIERE ---
 if __name__ == "__main__":

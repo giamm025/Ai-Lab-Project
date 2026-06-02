@@ -20,14 +20,12 @@ from neural_network.model import SignLanguageLSTM
 # =====================================================================
 
 """Genera il grafico con le curve di Loss e Accuracy, per un confronto Train vs Val"""
-
-
 def plot_learning_curves(csv_path, save_dir, modalita):
     
     if not csv_path.exists():
         print(f"⚠️ CSV non trovato in {csv_path}! Salto il grafico Learning Curve.")
         return
-# Prepariamo una "tela" bianca per il grafico grande 10x5 pollici
+    # Prepariamo una "tela" bianca per il grafico grande 10x5 pollici
     plt.figure(figsize=(10, 5))
 
     # Legge il file CSV
@@ -69,8 +67,6 @@ I parametri della funzione sono:
     - save_dir:     cartella dove salvare il report
     - modalita:     SOLO_MANI o MANI_VOLTO (per distinguere i file dei due esperimenti)
 """
-
-
 def generate_report(solutions, precitions, target_words, save_dir, modalita):
     
     report = classification_report(solutions, precitions, labels=list(range(len(target_words))), target_names=target_words, zero_division=0)
@@ -114,12 +110,20 @@ def draw_confusion_matrix(solutions, precitions, target_words, save_dir, modalit
 """Ri-divide il Dataset per ottenere lo stesso Test Set utilizzato alla fine dell'addestramento)"""
 def create_test_dataloader(dataset):
     torch.manual_seed(SEED)
-    total = len(dataset)
+    
+    # prendiamo solo gli indici dei video originali (escludendo quelli con '_aug_' nel nome)
+    original_indices = [i for i, name in enumerate(dataset.filenames) if "_aug_" not in name]
+    
+    # creiamo un sub-datset contenente solo video originali, ESCLUDENDO quelli derivanti da data augmentation
+    # questo lo useremo in fare di test per evitare di testare il modello su video uguali a quelli di train... ma semplicemente con le mani scambiate
+    pure_dataset = torch.utils.data.Subset(dataset, original_indices)
+    
+    total = len(pure_dataset)
     train_size = int(0.70 * total)
     val_size = int(0.15 * total)
     test_size = total - train_size - val_size
 
-    _, _, test_data = random_split(dataset, [train_size, val_size, test_size])
+    _, _, test_data = random_split(pure_dataset, [train_size, val_size, test_size])
     return DataLoader(test_data, batch_size=8, shuffle=False)
 
 def load_trained_model(model_path, modalita, version, device):

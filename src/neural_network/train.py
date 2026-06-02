@@ -12,8 +12,9 @@ if sys.stdout.encoding.lower() != "utf-8":
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from config import TARGET_WORDS, PROCESSED_DIR, SEED, GET_MODEL_PATH, GET_EXPERIMENT_DIR, GET_CSV_PATH
-from dataset import SignLanguageDataset
+# NB: Non importiamo più le funzioni GET_ o la versione dal config!
+from config import TARGET_WORDS, PROCESSED_DIR, MODELS_DIR, RESULTS_DIR, SEED
+from dataset import SignLanguageDataset, AugmentedTrainingWrapper
 from model import SignLanguageLSTM
 
 """
@@ -22,15 +23,17 @@ from model import SignLanguageLSTM
 parser = argparse.ArgumentParser(description="Addestra il modello di Riconoscimento LIS.")
 
 arg_configs = [
-    {"name": "--modalita", "type": str, "choices": ["SOLO_MANI", "MANI_VOLTO"], "default": "MANI_VOLTO", "help": "Scegli se usare i 126 o i 402 keypoints"},
-    {"name": "--seed", "type": int, "default": 42, "help": "Seme per la riproducibilità (default: 42)"},
-    {"name": "--epochs", "type": int, "default": 200, "help": "Numero di epoche per l'addestramento (default: 200)"},
-    {"name": "--batch_size", "type": int, "default": 8, "help": "Dimensione del batch per l'addestramento (default: 8)"},
-    {"name": "--patience", "type": int, "default": 10, "help": "Epoche senza miglioramento prima dell'early stopping (default: 10)"},
-    {"name": "--learning_rate", "type": float, "default": 1e-3, "help": "Learning rate (default: 1e-3)"},
-    {"name": "--hidden_size", "type": int, "default": 64, "help": "Dimensione hidden state LSTM (default: 64)"},
-    {"name": "--num_layers", "type": int, "default": 1, "help": "Numero di layer della LSTM (default: 1)"},
-    {"name": "--dropout", "type": float, "default": 0.0, "help": "Probabilità di dropout tra LSTM e layer finale (default: 0.0 = disabilitato)"},
+    {"name": "--modalita", "type": str, "choices": ["SOLO_MANI", "MANI_VOLTO"], "default": "MANI_VOLTO"},
+    {"name": "--version", "type": str, "required": True, "help": "Versione esperimento (es. v1, v2)"},
+    {"name": "--desc", "type": str, "required": True, "help": "Taglia dataset (es. S, M, L)"},
+    {"name": "--seed", "type": int, "default": 42},
+    {"name": "--epochs", "type": int, "default": 200},
+    {"name": "--batch_size", "type": int, "default": 8},
+    {"name": "--patience", "type": int, "default": 10},
+    {"name": "--learning_rate", "type": float, "default": 1e-3},
+    {"name": "--hidden_size", "type": int, "default": 64},
+    {"name": "--num_layers", "type": int, "default": 1},
+    {"name": "--dropout", "type": float, "default": 0.0},
 ]
 
 for arg in arg_configs:
@@ -39,6 +42,8 @@ for arg in arg_configs:
 
 args = parser.parse_args()
 MODALITA = args.modalita
+VERSION = args.version
+DESC = args.desc
 SEED = args.seed
 EPOCHS = args.epochs
 BATCH_SIZE = args.batch_size
@@ -47,33 +52,53 @@ LEARNING_RATE = args.learning_rate
 HIDDEN_SIZE = args.hidden_size
 NUM_LAYERS = args.num_layers
 DROPOUT = args.dropout
-if args.seed != SEED:
-    SEED = args.seed
+
+# Costruzione path dinamici
+suffix = f"{VERSION}_{DESC}".strip('_')
+model_save_path = MODELS_DIR / f"model_{suffix}_{MODALITA}.pth"
+experiment_save_dir = RESULTS_DIR / suffix / MODALITA
+csv_path = experiment_save_dir / "training_history.csv"
+
+# Assicuriamoci che la cartella dei risultati esista
+experiment_save_dir.mkdir(parents=True, exist_ok=True)
 
 torch.manual_seed(SEED)
 if torch.cuda.is_available():
     torch.cuda.manual_seed_all(SEED)
 
-print(f"\n⚙️  CONFIGURAZIONE AVVIATA: Modalità {MODALITA} | Seed {SEED}")
+print(f"\n⚙️  CONFIGURAZIONE AVVIATA: Modalità {MODALITA} | Esperimento {suffix} | Seed {SEED}")
 
 """
-1. PREPARARE IL DATASET
+1. PREPARARE IL DATASET (Dinamico!)
 """
-full_dataset = SignLanguageDataset(PROCESSED_DIR)
+# Troviamo la cartella giusta in base a versione e desc
+dataset_folder_name = f"{VERSION}_processed_{DESC}"
+dynamic_processed_dir = PROCESSED_DIR.parent / dataset_folder_name
 
-total = len(full_dataset)
-train_size = int(0.70 * total)
-val_size = int(0.15 * total)
-test_size = total - train_size - val_size
+if not dynamic_processed_dir.exists():
+    print(f"⚠️ Cartella specifica non trovata ({dynamic_processed_dir}). Uso PROCESSED_DIR di default.")
+    dynamic_processed_dir = PROCESSED_DIR
+else:
+    print(f"📦 Dataset rilevato con successo: {dataset_folder_name}")
 
-training_data, val_data, test_data = random_split(full_dataset, [train_size, val_size, test_size])
-print(f"Split dataset: {train_size} train | {val_size} val | {test_size} test")
+# Carichiamo il dataset base senza augmentation
+base_dataset = SignLanguageDataset(dynamic_processed_dir, exclude_augmented=True)
 
+total_base = len(base_dataset)
+train_size_base = int(0.70 * total_base)
+val_size_base = int(0.15 * total_base)
+test_size_base = total_base - train_size_base - val_size_base
+
+training_base, val_data, test_data = random_split(base_dataset, [train_size_base, val_size_base, test_size_base])
+
+# Avvolgiamo il train set con i cloni aumentati, passando la STESSA cartella dinamica
+training_data = AugmentedTrainingWrapper(training_base, dynamic_processed_dir)
+
+print(f"Split dataset: {len(training_data)} train (originali + aug) | {len(val_data)} val | {len(test_data)} test")
 
 """
 2. CREARE I DATALOADER
 """
-batch_size = BATCH_SIZE
 train_dataloader = DataLoader(training_data, batch_size=BATCH_SIZE, shuffle=True)
 val_dataloader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False)
 test_dataloader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False)
@@ -87,13 +112,11 @@ print(f"Using {device} device")
 """
 3.5 CONFIGURAZIONE A/B TEST
 """
-input_size = 126 if MODALITA == "SOLO_MANI" else 402
+input_size = 126 if MODALITA == "SOLO_MANI" else (1530 if VERSION == "v1" else 402)
 
 """
 4. DEFINIZIONE DEL MODELLO
 """
-hidden_size = HIDDEN_SIZE
-num_layers = NUM_LAYERS
 num_classes = len(TARGET_WORDS)
 
 model = SignLanguageLSTM(
@@ -112,10 +135,8 @@ optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 metric = torchmetrics.Accuracy(task="multiclass", num_classes=num_classes).to(device)
 
 """
-6. TRAINING LOOP (Fuso: Ritorna i valori per il CSV + usa lengths del compagno)
+6. TRAINING LOOP
 """
-
-
 def train_loop(train_dataloader, model, loss_fn, optimizer):
     model.train()
     total_loss = 0
@@ -124,9 +145,7 @@ def train_loop(train_dataloader, model, loss_fn, optimizer):
         if MODALITA == "SOLO_MANI":
             x = x[:, :, :126]
 
-        x = x.to(device)
-        y = y.to(device)
-        # lengths resta sulla CPU
+        x, y = x.to(device), y.to(device)
 
         pred = model(x, lengths)
         loss = loss_fn(pred, y)
@@ -144,7 +163,6 @@ def train_loop(train_dataloader, model, loss_fn, optimizer):
     print(f"---> Train Loss: {epoch_loss:.4f} | Train Acc: {epoch_acc:.4f}")
     metric.reset()
     return epoch_loss, epoch_acc
-
 
 def val_loop(dataloader, model, loss_fn):
     model.eval()
@@ -169,12 +187,9 @@ def val_loop(dataloader, model, loss_fn):
     metric.reset()
     return avg_loss, acc
 
-
 """
-7. TEST LOOP (Fuso: Calcola avg_loss per Early Stopping + usa lengths)
+7. TEST LOOP
 """
-
-
 def test_loop(dataloader, model, loss_fn):
     model.eval()
     total_loss = 0.0
@@ -197,21 +212,15 @@ def test_loop(dataloader, model, loss_fn):
     metric.reset()
     return avg_loss, acc
 
-
 """
-8. ESECUZIONE E SALVATAGGIO (Fuso: Early Stopping + Percorsi Root + CSV)
+8. ESECUZIONE E SALVATAGGIO
 """
 print(f"Inizio addestramento in modalità: {MODALITA}")
 
-model_save_path = GET_MODEL_PATH(MODALITA)
-experiment_save_dir = GET_EXPERIMENT_DIR(MODALITA)
-csv_path = GET_CSV_PATH(MODALITA)
-
-# Configurazioni Early Stopping e CSV
 history = []
 patience = PATIENCE
 epochs_no_improve = 0
-best_val_loss = float("inf")  # Early Stopping usa val_loss, NON test_loss
+best_val_loss = float("inf")
 
 for epoch in range(EPOCHS):
     print(f"=============================")
@@ -221,10 +230,8 @@ for epoch in range(EPOCHS):
     train_loss, train_acc = train_loop(train_dataloader, model, loss_fn, optimizer)
     val_loss, val_acc = val_loop(val_dataloader, model, loss_fn)
 
-    # Salviamo i dati per il CSV (Aggiunto test_loss!)
     history.append([epoch + 1, train_loss, train_acc, val_loss, val_acc])
 
-    # --- LOGICA EARLY STOPPING E SALVATAGGIO (Dal codice del compagno) ---
     if val_loss < best_val_loss:
         best_val_loss = val_loss
         epochs_no_improve = 0
@@ -239,14 +246,11 @@ for epoch in range(EPOCHS):
             print(f"   Miglior Val Loss salvata: {best_val_loss:.4f}")
             break
 
-# --- SALVATAGGIO DEL CSV FINALE ---
 with open(csv_path, mode="w", newline="", encoding="utf-8") as file:
     writer = csv.writer(file)
     writer.writerow(["Epoch", "Train_Loss", "Train_Acc", "Val_Loss", "Val_Acc"])
     writer.writerows(history)
 
-
-# Carichiamo il miglior modello salvato prima di eseguire il test.
 print("\n" + "=" * 50)
 print("🔬 VALUTAZIONE FINALE SUL TEST SET (una tantum)")
 print("=" * 50)

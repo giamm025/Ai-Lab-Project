@@ -108,14 +108,21 @@ def draw_confusion_matrix(solutions, precitions, target_words, save_dir, modalit
 # =====================================================================
 # =====================================================================
 """Ri-divide il Dataset per ottenere lo stesso Test Set utilizzato alla fine dell'addestramento)"""
+"""Ri-divide il Dataset escludendo i file aumentati per prevenire il Data Leakage"""
 def create_test_dataloader(dataset):
     torch.manual_seed(SEED)
-    total = len(dataset)
+    
+    # --- FIX DATA LEAKAGE: Ignoriamo i file aumentati nel test ---
+    # Creiamo un sub-dataset temporaneo di soli video originali
+    original_indices = [i for i, name in enumerate(dataset.filenames) if "_aug_" not in name]
+    pure_dataset = torch.utils.data.Subset(dataset, original_indices)
+    
+    total = len(pure_dataset)
     train_size = int(0.70 * total)
     val_size = int(0.15 * total)
     test_size = total - train_size - val_size
 
-    _, _, test_data = random_split(dataset, [train_size, val_size, test_size])
+    _, _, test_data = random_split(pure_dataset, [train_size, val_size, test_size])
     return DataLoader(test_data, batch_size=8, shuffle=False)
 
 def load_trained_model(model_path, modalita, version, device):

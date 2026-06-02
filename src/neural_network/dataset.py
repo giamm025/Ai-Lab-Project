@@ -125,7 +125,7 @@ class AugmentedTrainingWrapper(Dataset):
                 if original_name in self.allowed_originals:
                     self.augmented_filenames.append(filename)
                     word = filename.split("_")[0]
-                    self.augmented_labels.append(base_train_subdataset.dataset.labels[base_train_subdataset.dataset.filenames.index(filename)])
+                    self.augmented_labels.append(LABEL_MAP[word])
 
         print(f"   ↳ Trovati {len(self.augmented_filenames)} file aumentati legali per il Training Set.")
 

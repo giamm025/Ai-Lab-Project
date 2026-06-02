@@ -123,7 +123,8 @@ def create_test_dataloader(dataset):
     val_size = int(0.15 * total)
     test_size = total - train_size - val_size
 
-    _, _, test_data = random_split(pure_dataset, [train_size, val_size, test_size])
+    split_generator = torch.Generator().manual_seed(SEED)
+    _, _, test_data = random_split(pure_dataset, [train_size, val_size, test_size], generator=split_generator)
     return DataLoader(test_data, batch_size=8, shuffle=False)
 
 def load_trained_model(model_path, modalita, version, device):

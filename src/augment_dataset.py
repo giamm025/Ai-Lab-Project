@@ -60,8 +60,20 @@ def jitter(sequence: np.ndarray, std: float = JITTER_STD) -> np.ndarray:
     deviation is intentionally tiny (< 1 % of the normalised [0,1] space)
     so the shape of the sign is preserved.
     """
-    noise = np.random.normal(0.0, std, size=sequence.shape).astype(sequence.dtype)
-    return sequence + noise
+
+    # siccome nella sequenza possono esserci coordinate assenti (es. le mani non sono nell'inquadratura) applichiamo il jitter 
+    # SOLO ai punti che sono presenti (non zero) per evitare di far apparire "rumore" dove in realta non dovrebbe esserci nulla
+    seq = sequence.copy()
+    T, F = seq.shape
+    coords = seq.reshape(-1, 3)
+    
+    # troviamo i punti che NON sono zeri 
+    valid_mask = np.any(coords != 0, axis=1)
+    
+    # applichiamo il rumore SOLO ai punti validi
+    noise = np.random.normal(0.0, std, size=coords.shape).astype(seq.dtype)
+    coords[valid_mask] += noise[valid_mask]
+    return coords.reshape(T, F)
 
 
 def temporal_drop(sequence: np.ndarray,
@@ -101,8 +113,31 @@ def scale(sequence: np.ndarray,
     from the camera.  Because MediaPipe outputs normalised coordinates in
     [0, 1], mild over/under-shoot is acceptable.
     """
+
+    # Come per il jitter, applichiamo la scala SOLO ai punti validi (non zero) per evitare 
+    # di far diventare "grandi" i punti che in realta non dovrebbero esserci
+    seq = sequence.copy()
+    T, F = seq.shape
     factor = random.uniform(scale_min, scale_max)
-    return (sequence * factor).astype(sequence.dtype)
+    
+    for t in range(T):
+        coords = seq[t].reshape(-1, 3)
+        valid_mask = np.any(coords != 0, axis=1)
+        
+        if not np.any(valid_mask):
+            continue
+            
+        # Calcoliamo il centro geometrico (centroid) per x e y
+        cx = np.mean(coords[valid_mask, 0])
+        cy = np.mean(coords[valid_mask, 1])
+        
+        # Ingrandiamo mantenendo il centro fisso
+        coords[valid_mask, 0] = cx + factor * (coords[valid_mask, 0] - cx)
+        coords[valid_mask, 1] = cy + factor * (coords[valid_mask, 1] - cy)
+        coords[valid_mask, 2] = coords[valid_mask, 2] * factor # la profondità si scala direttamente
+        
+        seq[t] = coords.flatten()
+    return seq
 
 
 def mirror(sequence: np.ndarray) -> np.ndarray:
@@ -164,6 +199,7 @@ def augment(sequence: np.ndarray,
     Returns a new array; the input is never modified.
     """
     aug = sequence.copy()
+    F = aug.shape[1]        # estraiamo il numero di features per frame (126 o 402) per poter applicare la logica del mirror SOLO alla modalità SOLO_MANI (126)
 
     def do_jitter(seq): return jitter(seq, jitter_std)
     def do_tdrop(seq): return temporal_drop(seq, drop_min, drop_max)
@@ -178,7 +214,7 @@ def augment(sequence: np.ndarray,
         aug = fn(aug)
 
     # ── mirroring (independent 50 % coin flip) ───────────────────────────────
-    if random.random() < 0.5:
+    if F == 126 and random.random() < 0.5:
         aug = mirror(aug)
 
     return aug
@@ -234,7 +270,7 @@ def validate_feature_dim(sequence: np.ndarray, path: Path) -> bool:
         print(f"  [SKIP] {path.name}  — unexpected ndim={sequence.ndim}")
         return False
     F = sequence.shape[1]
-    if F not in (126, 402):
+    if F not in (126, 402, 1530):
         print(f"  [SKIP] {path.name}  — unexpected feature dim={F}")
         return False
     return True
@@ -311,8 +347,11 @@ def run_augmentation(
                 scale_max=scale_max
             )
 
+            # extract the original video name
+            parent_filename = src_path.stem.split("_aug_")[0]
+            
             # build output filename:  word_aug_NNN.npy
-            out_name = f"{word}_aug_{aug_idx:04d}.npy"
+            out_name = f"{parent_filename}_aug_{aug_idx:04d}.npy"
             out_path = processed_dir / out_name
             np.save(str(out_path), aug_seq)
 

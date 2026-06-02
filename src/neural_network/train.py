@@ -12,8 +12,7 @@ if sys.stdout.encoding.lower() != "utf-8":
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-# NB: Non importiamo più le funzioni GET_ o la versione dal config!
-from config import TARGET_WORDS, PROCESSED_DIR, MODELS_DIR, RESULTS_DIR, SEED
+from config import TARGET_WORDS, PROCESSED_DIR, MODELS_DIR, RESULTS_DIR, SEED, EXPERIMENT_VERSION, EXPERIMENT_DESC
 from dataset import SignLanguageDataset, AugmentedTrainingWrapper
 from model import SignLanguageLSTM
 
@@ -24,8 +23,8 @@ parser = argparse.ArgumentParser(description="Addestra il modello di Riconoscime
 
 arg_configs = [
     {"name": "--modalita", "type": str, "choices": ["SOLO_MANI", "MANI_VOLTO"], "default": "MANI_VOLTO"},
-    {"name": "--version", "type": str, "required": True, "help": "Versione esperimento (es. v1, v2)"},
-    {"name": "--desc", "type": str, "required": True, "help": "Taglia dataset (es. S, M, L)"},
+    {"name": "--version", "type": str, "help": "Versione esperimento (es. v1, v2). Se omesso, usa config.py"},
+    {"name": "--desc", "type": str, "help": "Taglia dataset (es. S, M, L). Se omesso, usa config.py"},
     {"name": "--seed", "type": int, "default": 42},
     {"name": "--epochs", "type": int, "default": 200},
     {"name": "--batch_size", "type": int, "default": 8},
@@ -42,8 +41,8 @@ for arg in arg_configs:
 
 args = parser.parse_args()
 MODALITA = args.modalita
-VERSION = args.version
-DESC = args.desc
+VERSION = args.version if args.version is not None else EXPERIMENT_VERSION
+DESC = args.desc if args.desc is not None else EXPERIMENT_DESC
 SEED = args.seed
 EPOCHS = args.epochs
 BATCH_SIZE = args.batch_size

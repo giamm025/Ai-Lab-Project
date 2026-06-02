@@ -5,7 +5,7 @@ Real-time sign-language inference from a webcam feed.
 
 Usage:
     python webcam_inference.py
-    python webcam_inference.py --modalita SOLO_MANI
+    python webcam_inference.py --modalita SOLO_MANI --version v2 --desc L
 
 Keyboard controls (inside the OpenCV window):
     R   →  Toggle recording ON / OFF.
@@ -43,7 +43,7 @@ import torch
 import torch.nn.functional as F
 import mediapipe as mp
 
-from config import LABEL_MAP, TARGET_WORDS, GET_MODEL_PATH
+from config import LABEL_MAP, TARGET_WORDS, MODELS_DIR, EXPERIMENT_VERSION, EXPERIMENT_DESC
 from extract_features import convert_keypoints
 from neural_network.model import SignLanguageLSTM
 
@@ -75,7 +75,7 @@ def infer_hyperparams_from_checkpoint(state_dict: dict) -> tuple[int, int]:
     """
     Reads hidden_size and num_layers directly from the checkpoint weights
     so we never have to hardcode them or keep them in sync manually.
-
+    
     LSTM weight layout (PyTorch):
       lstm.weight_ih_l{k}  shape: (4 * hidden_size, input_size_of_layer_k)
       lstm.weight_hh_l{k}  shape: (4 * hidden_size, hidden_size)
@@ -89,8 +89,10 @@ def infer_hyperparams_from_checkpoint(state_dict: dict) -> tuple[int, int]:
     return hidden_size, num_layers
 
 
-def load_model(modalita: str, device: torch.device) -> SignLanguageLSTM:
-    model_path = GET_MODEL_PATH(modalita)
+def load_model(modalita: str, version: str, desc: str, device: torch.device) -> SignLanguageLSTM:
+
+    suffix = f"{version}_{desc}".strip('_')
+    model_path = MODELS_DIR / f"model_{suffix}_{modalita}.pth"
 
     if not model_path.exists():
         raise FileNotFoundError(
@@ -99,13 +101,16 @@ def load_model(modalita: str, device: torch.device) -> SignLanguageLSTM:
         )
 
     # Load raw weights first so we can read the architecture from them
-    state_dict = torch.load(model_path, map_location=device)
+    state_dict = torch.load(model_path, map_location=device, weights_only=True)
     hidden_size, num_layers = infer_hyperparams_from_checkpoint(state_dict)
 
     print(f"[INFO] Checkpoint hyperparams → hidden_size={hidden_size}, num_layers={num_layers}")
 
+    # Gestione retrocompatibilità input per i vecchi modelli v1_MANI_VOLTO
+    input_dim = 1530 if (modalita == "MANI_VOLTO" and version == "v1") else INPUT_SIZE[modalita]
+
     model = SignLanguageLSTM(
-        input_size=INPUT_SIZE[modalita],
+        input_size=input_dim,
         hidden_size=hidden_size,
         num_classes=len(TARGET_WORDS),
         num_layers=num_layers,
@@ -163,7 +168,7 @@ def draw_filled_rect_alpha(frame, x1, y1, x2, y2, color, alpha=0.55):
 
 
 def draw_hud(frame, is_recording: bool, frame_count: int,
-             result: dict, modalita: str):
+             result: dict, modalita: str, version: str, desc: str):
     """
     Overlays all HUD elements on the frame:
       - Top bar with mode label
@@ -176,7 +181,7 @@ def draw_hud(frame, is_recording: bool, frame_count: int,
 
     # ---- Top bar ----
     draw_filled_rect_alpha(frame, 0, 0, w, 42, COLOR_DARK, alpha=0.70)
-    cv2.putText(frame, f"ASL Inference  |  modalita: {modalita}",
+    cv2.putText(frame, f"ASL Inference  |  modalita: {modalita} | {version}_{desc}",
                 (10, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.65, COLOR_WHITE, 1, cv2.LINE_AA)
 
     # ---- Bottom help bar ----
@@ -260,25 +265,25 @@ def main():
         type=str,
         default="MANI_VOLTO",
         choices=["MANI_VOLTO", "SOLO_MANI"],
-        help='Feature set: "MANI_VOLTO" (hands+face, 402 features) or "SOLO_MANI" (hands only, 126 features).',
     )
-    parser.add_argument(
-        "--camera_index",
-        type=int,
-        default=0,
-        help="OpenCV camera index (0 = default webcam).",
-    )
+    parser.add_argument("--version", type=str, default=None, help="Es: v1, v2 (Default: legge da config.py)")
+    parser.add_argument("--desc", type=str, default=None, help="Es: S, M, L (Default: legge da config.py)")
+    parser.add_argument("--camera_index", type=int, default=0)
     args = parser.parse_args()
 
     modalita     = args.modalita
     camera_index = args.camera_index
+    
+    version = args.version if args.version is not None else EXPERIMENT_VERSION
+    desc = args.desc if args.desc is not None else EXPERIMENT_DESC
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[INFO] Device:    {device}")
     print(f"[INFO] Modalita:  {modalita}")
+    print(f"[INFO] Version:   {version}_{desc}")
 
     # Load model
-    model = load_model(modalita, device)
+    model = load_model(modalita, version, desc, device)
 
     # Open webcam
     cap = cv2.VideoCapture(camera_index)
@@ -355,6 +360,8 @@ def main():
                 frame_count=len(frames_keypoints),
                 result=result,
                 modalita=modalita,
+                version=version,
+                desc=desc
             )
 
             cv2.imshow("ASL Webcam Inference", frame)
@@ -395,13 +402,6 @@ def main():
                         }
                         print(f"[RESULT] Predicted: {predicted.upper()}  "
                               f"| Confidence: {confidence:.2f}%")
-                        print("         Full distribution:")
-                        for w_label, pct in sorted(
-                            all_probs.items(), key=lambda x: x[1], reverse=True
-                        ):
-                            marker = " <--" if w_label == predicted else ""
-                            print(f"           {w_label:<15} {pct:6.2f}%{marker}")
-
     # Cleanup
     cap.release()
     cv2.destroyAllWindows()

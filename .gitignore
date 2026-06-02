@@ -37,7 +37,7 @@ models/*.pth
 models/*.weights
 
 # 5. Log e Risultati Temporanei
-results/v3_L_prova_webcam/
+results/*
 
 # 6. File di Sistema (Windows/Mac)
 .DS_Store

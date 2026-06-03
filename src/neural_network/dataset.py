@@ -6,7 +6,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 import torch
 import numpy as np
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, Subset
 from config import PROCESSED_DIR, LABEL_MAP
 
 
@@ -99,12 +99,57 @@ class SignLanguageDataset(Dataset):
 
         return data_tensor, label_tensor, length_tensor
 
+"""
+Carica i dati da una cartella specifica, esegue lo split garantendo che ci sia lo stesso numero di video per ogni parola 
+nei tre set (train, val, test) e applica l'augmentation SOLO al set di training.
+
+Ritorna: (train_dataset, val_dataset, test_dataset) grezzi.
+"""
+def get_stratified_dataset_splits(data_dir, seed):
+
+    # carichiamo l'intero dataset originale (SENZA augmentation) 
+    base_dataset = SignLanguageDataset(data_dir, exclude_augmented=True)
+    split_generator = torch.Generator().manual_seed(seed)
+
+    # raggruppiamo le parole uguali
+    label_to_indices = {}
+    for idx, label in enumerate(base_dataset.labels):
+        if label not in label_to_indices:
+            label_to_indices[label] = []
+        label_to_indices[label].append(idx)
+
+    train_indices = []
+    val_indices = []
+    test_indices = []
+
+    # applichiamo lo split stratificato
+    for label, idxs in label_to_indices.items():
+        idxs_tensor = torch.tensor(idxs)
+        shuffled_idxs = idxs_tensor[torch.randperm(len(idxs_tensor), generator=split_generator)].tolist()
+        
+        n = len(shuffled_idxs)
+        n_train = int(0.65 * n)
+        n_val = int(0.15 * n)
+        
+        train_indices.extend(shuffled_idxs[:n_train])
+        val_indices.extend(shuffled_idxs[n_train:n_train + n_val])
+        test_indices.extend(shuffled_idxs[n_train + n_val:])
+
+    # creiamo i sotto-dataset (Subsets) usando gli indici stratificati (che garantiscono lo stesso numero di video per ogni parola in ogni set)
+    training_base = Subset(base_dataset, train_indices)
+    val_data      = Subset(base_dataset, val_indices)
+    test_data     = Subset(base_dataset, test_indices)
+
+    # eseguiamo l'augmentation SOLO sul TRAIN SET
+    training_data = AugmentedTrainingWrapper(training_base, data_dir)
+    return training_data, val_data, test_data
 
 # =====================================================================
 # classe wrapper per il training che aggiunge i video derivanti dall'augmentation, MA SOLO SE siamo in fase di TRAIN
 # altrimenti rischiamo di testare il modello su video che sono identici a quelli di train, ma semplicemente con le mani scambiate 
 # =====================================================================
 class AugmentedTrainingWrapper(Dataset):
+    
     def __init__(self, base_train_subdataset, data_dir):
         self.base_train = base_train_subdataset
         self.data_dir = data_dir

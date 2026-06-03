@@ -8,11 +8,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 import argparse
 
 from config import MODELS_DIR, RESULTS_DIR, PROCESSED_DIR, TARGET_WORDS, LABEL_MAP, SEED
-from neural_network.dataset import SignLanguageDataset
+from neural_network.dataset import get_stratified_dataset_splits
 from neural_network.model import SignLanguageLSTM
 
 # =====================================================================
@@ -103,42 +103,10 @@ def draw_confusion_matrix(solutions, precitions, target_words, save_dir, modalit
     print(f"📊 Confusion Matrix salvata in: {cm_path}")
 
 
-# =====================================================================
-# LOGICA DI VALUTAZIONE CORE
-# =====================================================================
-# =====================================================================
-"""Ri-divide il Dataset per ottenere lo stesso Test Set utilizzato alla fine dell'addestramento)"""
-def create_test_dataloader(dataset):
-    # forza la rigenerazione deterministica basata sullo stesso SEED del train
-    split_generator = torch.Generator().manual_seed(SEED)
-    
-    # escludiamo i file con '_aug_' per evitare Data Leakage nel Test Set
-    original_indices = [i for i, name in enumerate(dataset.filenames) if "_aug_" not in name]
-    
-    # raggruppiamo le parole uguali
-    label_to_indices = {}
-    for idx in original_indices:
-        label = dataset.labels[idx]
-        if label not in label_to_indices:
-            label_to_indices[label] = []
-        label_to_indices[label].append(idx)
-        
-    test_indices = []
-    
-    # applichiamo lo split, assicurando che ci sia lo stesso numero di video per ogni parola
-    for label, idxs in label_to_indices.items():
-        idxs_tensor = torch.tensor(idxs)
-        shuffled_idxs = idxs_tensor[torch.randperm(len(idxs_tensor), generator=split_generator)].tolist()
-        
-        n = len(shuffled_idxs)
-        n_train = int(0.65 * n)
-        n_val = int(0.15 * n)
-        
-        test_indices.extend(shuffled_idxs[n_train + n_val:])
-        
-    test_data = torch.utils.data.Subset(dataset, test_indices)
-    return DataLoader(test_data, batch_size=8, shuffle=False)
-
+"""
+Carica il modello specificato e lo prepara per la fase di test. Garantisce RETROCOMPATIBILITÀ con i modelli 
+v1_MANI_VOLTO (che aspettano 1530 coordinate piuttosto che 402 delle versioni successive)
+"""
 def load_trained_model(model_path, modalita, version, device):
     # RETROCOMPATIBILITÀ: Se il modello è v1 ed è MANI_VOLTO, si aspetta 1530 ingressi, altrimenti 402
     if modalita == "SOLO_MANI":
@@ -199,38 +167,37 @@ if __name__ == "__main__":
     # ------------------------------------------- PATHS ---------------------------------------
     suffix = f"{args.version}_{args.desc}".strip('_')
     SAVE_PATH = RESULTS_DIR / suffix / MODALITA
-    model_file = MODELS_DIR / f"model_{suffix}_{MODALITA}.pth"
-    csv_file = SAVE_PATH / "training_history.csv"
     SAVE_PATH.mkdir(parents=True, exist_ok=True)
 
-    # ----------------------------------- FASE DI TEST E VALUTAZIONE ------------------------------------
-    print(f"\n--- AVVIO VALUTAZIONE: {MODALITA} | Esperimento: {suffix} ---")
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model_file = MODELS_DIR / f"model_{suffix}_{MODALITA}.pth"
     if not model_file.exists():
         print(f"❌ Errore: Modello non trovato ({model_file}). Salto valutazione.")
         sys.exit(1)
+    
+    csv_file = SAVE_PATH / "training_history.csv"
 
-    # PREPARAZIONE TEST
-    # eseguiamo la fase di test utilizzando IL DATASET SPECIFICO utilizzato durante l'addestramento di quel modello
-    # deve per forza essere nel formato "vX_processed_Y" (es. v1_processed_S) 
     dataset_folder_name = f"{args.version}_processed_{args.desc}"
     dynamic_processed_dir = PROCESSED_DIR.parent / dataset_folder_name
-    
-    # Controllo di sicurezza: se per caso la cartella specifica non esiste, usa quella di default
-    if not dynamic_processed_dir.exists():
+    if not dynamic_processed_dir.exists(): 
         print(f"⚠️ Cartella specifica non trovata ({dynamic_processed_dir}). Uso PROCESSED_DIR di default.")
         dynamic_processed_dir = PROCESSED_DIR
     else:
         print(f"📦 Dataset rilevato con successo: {dataset_folder_name}")
 
-    full_dataset = SignLanguageDataset(dynamic_processed_dir)
-    test_dataloader = create_test_dataloader(full_dataset)
+    # ----------------------------------- FASE DI TEST E VALUTAZIONE ------------------------------------
+    print(f"\n--- AVVIO VALUTAZIONE: {MODALITA} | Esperimento: {suffix} ---")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    # chiediamo a dataset.py di caricare i 3 diversi dataset (train, val, test), dopo aver effettauto lo split stratificato
+    _, _, test_data = get_stratified_dataset_splits(dynamic_processed_dir, SEED)
+    test_dataloader = DataLoader(test_data, batch_size=8, shuffle=False)
+
+    # carichiamo il modello, eseguiamo la fase di test per ottenere soluzioni e predizioni, e poi generiamo i grafici e report finali
     model = load_trained_model(model_file, MODALITA, args.version, device)
     solutions, precitions = run_evaluation(model, test_dataloader, MODALITA, device)
     target_words = [word for word, idx in sorted(LABEL_MAP.items(), key=lambda item: item[1])]
 
-    # GENERAZIONE GRAFICI E REPORT
+    # ----------------------------------- GENERAZIONE GRAFICI E REPORT ------------------------------------
     plot_learning_curves(csv_file, SAVE_PATH, MODALITA)
     generate_report(solutions, precitions, target_words, SAVE_PATH, MODALITA)
     draw_confusion_matrix(solutions, precitions, target_words, SAVE_PATH, MODALITA)

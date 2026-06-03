@@ -6,15 +6,14 @@ import argparse
 import csv
 from pathlib import Path
 
-# Forza stdout in UTF-8 nel caso in cui l'output venga reindirizzato su un file
-if sys.stdout.encoding.lower() != "utf-8":
-    sys.stdout.reconfigure(encoding="utf-8")
-
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from config import TARGET_WORDS, PROCESSED_DIR, MODELS_DIR, RESULTS_DIR, SEED, EXPERIMENT_VERSION, EXPERIMENT_DESC
-from dataset import SignLanguageDataset, AugmentedTrainingWrapper
+from dataset import get_stratified_dataset_splits
 from model import SignLanguageLSTM
+
+# Forza stdout in UTF-8 nel caso in cui l'output venga reindirizzato su un file
+if sys.stdout.encoding.lower() != "utf-8": sys.stdout.reconfigure(encoding="utf-8")
 
 """
 0. ARGOMENTI DA TERMINALE
@@ -68,9 +67,9 @@ if torch.cuda.is_available():
 print(f"\n⚙️  CONFIGURAZIONE AVVIATA: Modalità {MODALITA} | Esperimento {suffix} | Seed {SEED}")
 
 """
-1. PREPARARE IL DATASET (Dinamico!)
+1. PREPARARE IL DATASET (Dinamico e Stratificato)
 """
-# Troviamo la cartella giusta in base a versione e desc
+# estraiamo il dataset giusto in base a versione e desc del modello che stiamo addestrando
 dataset_folder_name = f"{VERSION}_processed_{DESC}"
 dynamic_processed_dir = PROCESSED_DIR.parent / dataset_folder_name
 
@@ -80,44 +79,10 @@ if not dynamic_processed_dir.exists():
 else:
     print(f"📦 Dataset rilevato con successo: {dataset_folder_name}")
 
-# Carichiamo il dataset base SENZA augmentation
-base_dataset = SignLanguageDataset(dynamic_processed_dir, exclude_augmented=True)
+# chiediamo a dataset.py di caricare i 3 diversi dataset (train, val, test), dopo aver effettauto lo split stratificato 
+training_data, val_data, test_data = get_stratified_dataset_splits(dynamic_processed_dir, SEED)
 
-split_generator = torch.Generator().manual_seed(SEED)
-
-# raggruppiamo le parole uguali
-label_to_indices = {}
-for idx, label in enumerate(base_dataset.labels):
-    if label not in label_to_indices:
-        label_to_indices[label] = []
-    label_to_indices[label].append(idx)
-
-train_indices = []
-val_indices = []
-test_indices = []
-
-# applichiamo lo split, assicurando che ci sia lo stesso numero di video per ogni parola
-for label, idxs in label_to_indices.items():
-    idxs_tensor = torch.tensor(idxs)
-    shuffled_idxs = idxs_tensor[torch.randperm(len(idxs_tensor), generator=split_generator)].tolist()
-    
-    n = len(shuffled_idxs)
-    n_train = int(0.65 * n)
-    n_val = int(0.15 * n)
-    
-    train_indices.extend(shuffled_idxs[:n_train])
-    val_indices.extend(shuffled_idxs[n_train:n_train + n_val])
-    test_indices.extend(shuffled_idxs[n_train + n_val:])
-
-# creiamo i sotto-dataset usando i vettori di indici stratificati
-training_base = torch.utils.data.Subset(base_dataset, train_indices)
-val_data = torch.utils.data.Subset(base_dataset, val_indices)
-test_data = torch.utils.data.Subset(base_dataset, test_indices)
-
-# Avvolgiamo il train set con i cloni aumentati, passando la STESSA cartella dinamica
-training_data = AugmentedTrainingWrapper(training_base, dynamic_processed_dir)
-
-print(f"Split dataset: {len(training_data)} train (originali + aug) | {len(val_data)} val | {len(test_data)} test")
+print(f"Split dataset stratificato: {len(training_data)} train | {len(val_data)} val | {len(test_data)} test")
 
 """
 2. CREARE I DATALOADER
@@ -135,7 +100,9 @@ print(f"Using {device} device")
 """
 3.5 CONFIGURAZIONE A/B TEST
 """
-input_size = 126 if MODALITA == "SOLO_MANI" else (1530 if VERSION == "v1" else 402)
+if MODALITA == "SOLO_MANI": input_size = 126
+elif VERSION == "v1":       input_size = 1530  
+else:                       input_size = 402
 
 """
 4. DEFINIZIONE DEL MODELLO

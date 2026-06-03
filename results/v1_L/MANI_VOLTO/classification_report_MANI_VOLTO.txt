@@ -2,13 +2,13 @@
 
                precision    recall  f1-score   support
 
-       happen       0.67      0.22      0.33         9
-      finally       0.36      0.80      0.50         5
-         late       1.00      0.44      0.62         9
-      not-yet       0.20      0.50      0.29         2
-misunderstand       0.57      0.57      0.57         7
-   understand       0.54      0.64      0.58        11
+       happen       1.00      0.50      0.67        10
+      finally       0.64      0.88      0.74         8
+         late       0.56      0.38      0.45        13
+      not-yet       0.50      1.00      0.67         7
+misunderstand       0.45      0.62      0.53         8
+   understand       0.73      0.53      0.62        15
 
-     accuracy                           0.51        43
-    macro avg       0.56      0.53      0.48        43
- weighted avg       0.63      0.51      0.51        43
+     accuracy                           0.61        61
+    macro avg       0.65      0.65      0.61        61
+ weighted avg       0.66      0.61      0.60        61

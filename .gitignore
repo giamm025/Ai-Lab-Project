@@ -38,6 +38,7 @@ models/*.weights
 
 # 5. Log e Risultati Temporanei
 results/*
+!results/confronto_metriche
 
 # 6. File di Sistema (Windows/Mac)
 .DS_Store

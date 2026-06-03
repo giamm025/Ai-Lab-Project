@@ -225,7 +225,7 @@ with open(csv_path, mode="w", newline="", encoding="utf-8") as file:
     writer.writerows(history)
 
 print("\n" + "=" * 50)
-print(f"\n💾 Addestramento completato! Modello salvato in: {model_save_path}")
+print(f"\n✅ Addestramento completato! Modello salvato in: {model_save_path}")
 print("🔬 VALUTAZIONE FINALE SUL TEST SET (solo per il miglior modello)")
 print("=" * 50)
 model.load_state_dict(torch.load(model_save_path, map_location=device, weights_only=True))

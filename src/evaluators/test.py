@@ -126,11 +126,18 @@ def load_trained_model(model_path, modalita, version, device):
 """
 Ri-esegue la fase di test per ottenere la lista di predizioni (risposte del modello) e la lista di soluzioni
 
-NB. Questa esecuzione è diversa da quella di train.py!!!! Li eseguiamo il test AD OGNI EPOCA per ottenere loss/accuracy
-    e decretare un "miglior modello" da salvare. QUI, invece, eseguiamo il test SOLO UNA VOLTA, sul MODELLO MIGLIORE per 
-    valutare il modello finale e generare i grafici finali. NON avrebbe senso unificare le due logiche.
+NB. Questa funzione qui è diversa da val_loop() di train.py!!!! Li eseguiamo il test AD OGNI EPOCA per ottenere LOSS e ACCURACY 
+    di validation e decretare un "miglior modello" da salvare. 
+    
+    QUI, invece, eseguiamo il test solo sul MODELLO MIGLIORE per ottenere PREDICTIONS e SOLUTIONS, tramite cui potremo calcolare
+    F1 Score, Confusion MAtrix, Report, Grafici etc... 
+    
+    Mischiare le due logice NON avrebbe senso poiche:
+        - in tran.py ci ritroveremmo i dati per genrare grafici, che non servono a niente e rallentano l'esecuzione
+        - in test.py ci ritroveremmo i dati per decretare il miglior modello, che non servono a niente siccome è gia 
+                     stato scelto e salvato in precedenza da train.py
 """
-def run_evaluation(model, dataloader, modalita, device):
+def test_loop(model, dataloader, modalita, device):
     precitions = []
     solutions = []
 
@@ -194,7 +201,7 @@ if __name__ == "__main__":
 
     # carichiamo il modello, eseguiamo la fase di test per ottenere soluzioni e predizioni, e poi generiamo i grafici e report finali
     model = load_trained_model(model_file, MODALITA, args.version, device)
-    solutions, precitions = run_evaluation(model, test_dataloader, MODALITA, device)
+    solutions, precitions = test_loop(model, test_dataloader, MODALITA, device)
     target_words = [word for word, idx in sorted(LABEL_MAP.items(), key=lambda item: item[1])]
 
     # ----------------------------------- GENERAZIONE GRAFICI E REPORT ------------------------------------

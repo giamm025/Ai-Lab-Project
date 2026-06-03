@@ -154,18 +154,24 @@ def train_loop(train_dataloader, model, loss_fn, optimizer):
     metric.reset()
     return epoch_loss, epoch_acc
 
-def val_loop(dataloader, model, loss_fn):
+"""
+7. VALIDATION LOOP
+"""
+def val_loop(dataloader, model, loss_fn, is_test=False):
+    
     model.eval()
     total_loss = 0.0
     num_batches = 0
-
     with torch.no_grad():
         for x, y, lengths in dataloader:
+            
+            # se siamo in modalita SOLO_MANI tagliamo il tensore per escludere le coordinate del volto
             if MODALITA == "SOLO_MANI":
                 x = x[:, :, :126]
 
             x, y = x.to(device), y.to(device)
 
+            # prendiamo le risposte del modello e calcoliamo la loss, accumulando i risultati per poi fare la media alla fine dell'epoca
             pred = model(x, lengths)
             total_loss += loss_fn(pred, y).item()
             num_batches += 1
@@ -173,32 +179,9 @@ def val_loop(dataloader, model, loss_fn):
 
     avg_loss = total_loss / num_batches
     acc = metric.compute().item()
-    print(f"--- VAL  → Loss: {avg_loss:.4f} | Acc: {acc:.4f}")
-    metric.reset()
-    return avg_loss, acc
-
-"""
-7. TEST LOOP
-"""
-def test_loop(dataloader, model, loss_fn):
-    model.eval()
-    total_loss = 0.0
-    num_batches = 0
-
-    with torch.no_grad():
-        for x, y, lengths in dataloader:
-            if MODALITA == "SOLO_MANI":
-                x = x[:, :, :126]
-
-            x, y = x.to(device), y.to(device)
-
-            pred = model(x, lengths)
-            total_loss += loss_fn(pred, y).item()
-            num_batches += 1
-            metric(pred, y)
-
-    avg_loss = total_loss / num_batches
-    acc = metric.compute().item()
+    
+    prefix = "TEST" if is_test else "VAL "
+    print(f"--- {prefix}  → Loss: {avg_loss:.4f} | Acc: {acc:.4f}")
     metric.reset()
     return avg_loss, acc
 
@@ -242,11 +225,13 @@ with open(csv_path, mode="w", newline="", encoding="utf-8") as file:
     writer.writerows(history)
 
 print("\n" + "=" * 50)
-print("🔬 VALUTAZIONE FINALE SUL TEST SET (una tantum)")
+print(f"\n💾 Addestramento completato! Modello salvato in: {model_save_path}")
+print("🔬 VALUTAZIONE FINALE SUL TEST SET (solo per il miglior modello)")
 print("=" * 50)
 model.load_state_dict(torch.load(model_save_path, map_location=device, weights_only=True))
-final_test_loss, final_test_acc = test_loop(test_dataloader, model, loss_fn)
+final_test_loss, final_test_acc = val_loop(test_dataloader, model, loss_fn, is_test=True)
 print(f"*** ACCURATEZZA DI TEST FINALE: {final_test_acc:.4f} | Loss: {final_test_loss:.4f} ***")
 print("=" * 50)
+print("👉 Usa test.py (o bulk_evaluate.py) per valutare le performance sul Test Set e generare i grafici.")
 
 print("\nAddestramento completato! 🎉")

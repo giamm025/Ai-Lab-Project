@@ -70,7 +70,8 @@ print(f"\n⚙️  CONFIGURAZIONE AVVIATA: Modalità {MODALITA} | Esperimento {su
 1. PREPARARE IL DATASET (Dinamico e Stratificato)
 """
 # estraiamo il dataset giusto in base a versione e desc del modello che stiamo addestrando
-dataset_folder_name = f"{VERSION}_processed_{DESC}"
+if VERSION == "v3": dataset_folder_name = "v2_processed_L"
+else:               dataset_folder_name = f"{VERSION}_processed_{DESC}"
 dynamic_processed_dir = PROCESSED_DIR.parent / dataset_folder_name
 
 if not dynamic_processed_dir.exists():

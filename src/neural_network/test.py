@@ -107,7 +107,7 @@ def draw_confusion_matrix(solutions, precitions, target_words, save_dir, modalit
 Carica il modello specificato e lo prepara per la fase di test. Garantisce RETROCOMPATIBILITÀ con i modelli 
 v1_MANI_VOLTO (che aspettano 1530 coordinate piuttosto che 402 delle versioni successive)
 """
-def load_trained_model(model_path, modalita, version, device):
+def load_trained_model(model_path, modalita, version, hidden_size, num_layers, device):
     # RETROCOMPATIBILITÀ: Se il modello è v1 ed è MANI_VOLTO, si aspetta 1530 ingressi, altrimenti 402
     if modalita == "SOLO_MANI":
         input_size = 126
@@ -117,7 +117,7 @@ def load_trained_model(model_path, modalita, version, device):
         raise ValueError("Modalità sconosciuta! Scegli SOLO_MANI o MANI_VOLTO.")    
     num_classes = len(TARGET_WORDS)
 
-    model = SignLanguageLSTM(input_size=input_size, hidden_size=64, num_classes=num_classes).to(device)
+    model = SignLanguageLSTM(input_size=input_size, hidden_size=hidden_size, num_classes=num_classes, num_layers=num_layers).to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
     return model
@@ -165,8 +165,10 @@ if __name__ == "__main__":
     # ------------------------------------------ PARSER ------------------------------------------
     parser = argparse.ArgumentParser(description="Valuta il modello e genera grafici.")
     parser.add_argument("--modalita", type=str, choices=["SOLO_MANI", "MANI_VOLTO"], required=True)
-    parser.add_argument("--version", type=str, required=True, help="Es. v1, v2")
-    parser.add_argument("--desc", type=str, default="", help="Es. S, M, L")
+    parser.add_argument("--version", type=str, required=True)
+    parser.add_argument("--desc", type=str, default="")
+    parser.add_argument("--hidden_size", type=int, default=64)
+    parser.add_argument("--num_layers", type=int, default=1)
     args = parser.parse_args()
     
     MODALITA = args.modalita
@@ -183,8 +185,10 @@ if __name__ == "__main__":
     
     csv_file = SAVE_PATH / "training_history.csv"
 
-    dataset_folder_name = f"{args.version}_processed_{args.desc}"
+    if args.version == "v3": dataset_folder_name = "v2_processed_L"
+    else:                    dataset_folder_name = f"{args.version}_processed_{args.desc}"
     dynamic_processed_dir = PROCESSED_DIR.parent / dataset_folder_name
+    
     if not dynamic_processed_dir.exists(): 
         print(f"⚠️ Cartella specifica non trovata ({dynamic_processed_dir}). Uso PROCESSED_DIR di default.")
         dynamic_processed_dir = PROCESSED_DIR
@@ -200,7 +204,7 @@ if __name__ == "__main__":
     test_dataloader = DataLoader(test_data, batch_size=8, shuffle=False)
 
     # carichiamo il modello, eseguiamo la fase di test per ottenere soluzioni e predizioni, e poi generiamo i grafici e report finali
-    model = load_trained_model(model_file, MODALITA, args.version, device)
+    model = load_trained_model(model_file, MODALITA, args.version, args.hidden_size, args.num_layers, device)
     solutions, precitions = test_loop(model, test_dataloader, MODALITA, device)
     target_words = [word for word, idx in sorted(LABEL_MAP.items(), key=lambda item: item[1])]
 

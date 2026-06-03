@@ -109,22 +109,34 @@ def draw_confusion_matrix(solutions, precitions, target_words, save_dir, modalit
 # =====================================================================
 """Ri-divide il Dataset per ottenere lo stesso Test Set utilizzato alla fine dell'addestramento)"""
 def create_test_dataloader(dataset):
-    torch.manual_seed(SEED)
+    # forza la rigenerazione deterministica basata sullo stesso SEED del train
+    split_generator = torch.Generator().manual_seed(SEED)
     
-    # prendiamo solo gli indici dei video originali (escludendo quelli con '_aug_' nel nome)
+    # escludiamo i file con '_aug_' per evitare Data Leakage nel Test Set
     original_indices = [i for i, name in enumerate(dataset.filenames) if "_aug_" not in name]
     
-    # creiamo un sub-datset contenente solo video originali, ESCLUDENDO quelli derivanti da data augmentation
-    # questo lo useremo in fare di test per evitare di testare il modello su video uguali a quelli di train... ma semplicemente con le mani scambiate
-    pure_dataset = torch.utils.data.Subset(dataset, original_indices)
+    # raggruppiamo le parole uguali
+    label_to_indices = {}
+    for idx in original_indices:
+        label = dataset.labels[idx]
+        if label not in label_to_indices:
+            label_to_indices[label] = []
+        label_to_indices[label].append(idx)
+        
+    test_indices = []
     
-    total = len(pure_dataset)
-    train_size = int(0.70 * total)
-    val_size = int(0.15 * total)
-    test_size = total - train_size - val_size
-
-    split_generator = torch.Generator().manual_seed(SEED)
-    _, _, test_data = random_split(pure_dataset, [train_size, val_size, test_size], generator=split_generator)
+    # applichiamo lo split, assicurando che ci sia lo stesso numero di video per ogni parola
+    for label, idxs in label_to_indices.items():
+        idxs_tensor = torch.tensor(idxs)
+        shuffled_idxs = idxs_tensor[torch.randperm(len(idxs_tensor), generator=split_generator)].tolist()
+        
+        n = len(shuffled_idxs)
+        n_train = int(0.65 * n)
+        n_val = int(0.15 * n)
+        
+        test_indices.extend(shuffled_idxs[n_train + n_val:])
+        
+    test_data = torch.utils.data.Subset(dataset, test_indices)
     return DataLoader(test_data, batch_size=8, shuffle=False)
 
 def load_trained_model(model_path, modalita, version, device):

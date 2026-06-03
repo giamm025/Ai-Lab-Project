@@ -80,16 +80,39 @@ if not dynamic_processed_dir.exists():
 else:
     print(f"📦 Dataset rilevato con successo: {dataset_folder_name}")
 
-# Carichiamo il dataset base senza augmentation
+# Carichiamo il dataset base SENZA augmentation
 base_dataset = SignLanguageDataset(dynamic_processed_dir, exclude_augmented=True)
 
-total_base = len(base_dataset)
-train_size_base = int(0.70 * total_base)
-val_size_base = int(0.15 * total_base)
-test_size_base = total_base - train_size_base - val_size_base
-
 split_generator = torch.Generator().manual_seed(SEED)
-training_base, val_data, test_data = random_split(base_dataset, [train_size_base, val_size_base, test_size_base], generator=split_generator)
+
+# raggruppiamo le parole uguali
+label_to_indices = {}
+for idx, label in enumerate(base_dataset.labels):
+    if label not in label_to_indices:
+        label_to_indices[label] = []
+    label_to_indices[label].append(idx)
+
+train_indices = []
+val_indices = []
+test_indices = []
+
+# applichiamo lo split, assicurando che ci sia lo stesso numero di video per ogni parola
+for label, idxs in label_to_indices.items():
+    idxs_tensor = torch.tensor(idxs)
+    shuffled_idxs = idxs_tensor[torch.randperm(len(idxs_tensor), generator=split_generator)].tolist()
+    
+    n = len(shuffled_idxs)
+    n_train = int(0.65 * n)
+    n_val = int(0.15 * n)
+    
+    train_indices.extend(shuffled_idxs[:n_train])
+    val_indices.extend(shuffled_idxs[n_train:n_train + n_val])
+    test_indices.extend(shuffled_idxs[n_train + n_val:])
+
+# creiamo i sotto-dataset usando i vettori di indici stratificati
+training_base = torch.utils.data.Subset(base_dataset, train_indices)
+val_data = torch.utils.data.Subset(base_dataset, val_indices)
+test_data = torch.utils.data.Subset(base_dataset, test_indices)
 
 # Avvolgiamo il train set con i cloni aumentati, passando la STESSA cartella dinamica
 training_data = AugmentedTrainingWrapper(training_base, dynamic_processed_dir)

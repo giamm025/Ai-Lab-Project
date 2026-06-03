@@ -30,7 +30,7 @@ from pathlib import Path
 # config, extract_features, and neural_network.model regardless of the
 # working directory from which this script is called.
 # ---------------------------------------------------------------------------
-SRC_DIR = Path(__file__).resolve().parent      # .../Ai-Lab-Project/src
+SRC_DIR = Path(__file__).resolve().parent.parent      # .../Ai-Lab-Project/src
 sys.path.insert(0, str(SRC_DIR))
 
 import cv2

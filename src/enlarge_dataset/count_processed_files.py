@@ -2,8 +2,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-# Assicura che la directory src sia nel PYTHONPATH
-current_dir = Path(__file__).resolve().parent
+current_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(current_dir))
 
 from config import PROCESSED_DIR, TARGET_WORDS

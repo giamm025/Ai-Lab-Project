@@ -1,5 +1,9 @@
+import sys
+from pathlib import Path
 import kagglehub
 import argparse
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from config import DATASETS_DIR
 
 paths = {

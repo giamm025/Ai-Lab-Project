@@ -34,7 +34,7 @@ from pathlib import Path
 #           neural_network/
 #               model.py
 # ---------------------------------------------------------------------------
-SRC_DIR = Path(__file__).resolve().parent      # .../Ai-Lab-Project/src
+SRC_DIR = Path(__file__).resolve().parent.parent      # .../Ai-Lab-Project/src
 sys.path.insert(0, str(SRC_DIR))
 
 import cv2

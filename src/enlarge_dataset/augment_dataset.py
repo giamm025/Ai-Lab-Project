@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 
 # ── locate config.py (one directory up from src/) ───────────────────────────
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from config import PROCESSED_DIR, TARGET_WORDS
 
 # ────────────────────────── HYPER-PARAMETERS ────────────────────────────────

@@ -24,29 +24,29 @@ import numpy as np
 
 # ── locate config.py (one directory up from src/) ───────────────────────────
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from config import PROCESSED_DIR, TARGET_WORDS
+from config import PROCESSED_DIR, TARGET_WORDS, GARBAGE_CLASS
 
 # ────────────────────────── HYPER-PARAMETERS ────────────────────────────────
 
-TARGET_COUNT   = 300    # desired number of samples per class
-MARGIN         = 0.10   # ±10 % balance tolerance  (for the final report)
-RANDOM_SEED    = 42
+TARGET_COUNT = 300  # desired number of samples per class
+MARGIN = 0.10  # ±10 % balance tolerance  (for the final report)
+RANDOM_SEED = 42
 
 # Spatial jitter — σ of Gaussian noise added to every coordinate
-JITTER_STD     = 0.005
+JITTER_STD = 0.005
 
 # Temporal drop — fraction of frames to remove
-TDROP_MIN      = 0.10
-TDROP_MAX      = 0.20
+TDROP_MIN = 0.10
+TDROP_MAX = 0.20
 
 # Scaling — uniform scale factor range
-SCALE_MIN      = 0.90
-SCALE_MAX      = 1.10
+SCALE_MIN = 0.90
+SCALE_MAX = 1.10
 
 # ────────────────────────── FEATURE-LAYOUT CONSTANTS ────────────────────────
 
-LH_START, LH_END = 0,   63    # left-hand  block
-RH_START, RH_END = 63, 126    # right-hand block
+LH_START, LH_END = 0, 63  # left-hand  block
+RH_START, RH_END = 63, 126  # right-hand block
 
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -61,24 +61,22 @@ def jitter(sequence: np.ndarray, std: float = JITTER_STD) -> np.ndarray:
     so the shape of the sign is preserved.
     """
 
-    # siccome nella sequenza possono esserci coordinate assenti (es. le mani non sono nell'inquadratura) applichiamo il jitter 
+    # siccome nella sequenza possono esserci coordinate assenti (es. le mani non sono nell'inquadratura) applichiamo il jitter
     # SOLO ai punti che sono presenti (non zero) per evitare di far apparire "rumore" dove in realta non dovrebbe esserci nulla
     seq = sequence.copy()
     T, F = seq.shape
     coords = seq.reshape(-1, 3)
-    
-    # troviamo i punti che NON sono zeri 
+
+    # troviamo i punti che NON sono zeri
     valid_mask = np.any(coords != 0, axis=1)
-    
+
     # applichiamo il rumore SOLO ai punti validi
     noise = np.random.normal(0.0, std, size=coords.shape).astype(seq.dtype)
     coords[valid_mask] += noise[valid_mask]
     return coords.reshape(T, F)
 
 
-def temporal_drop(sequence: np.ndarray,
-                  drop_min: float = TDROP_MIN,
-                  drop_max: float = TDROP_MAX) -> np.ndarray:
+def temporal_drop(sequence: np.ndarray, drop_min: float = TDROP_MIN, drop_max: float = TDROP_MAX) -> np.ndarray:
     """
     Temporal frame dropping: randomly remove 10–20 % of frames.
 
@@ -102,9 +100,7 @@ def temporal_drop(sequence: np.ndarray,
     return sequence[keep_idx]
 
 
-def scale(sequence: np.ndarray,
-          scale_min: float = SCALE_MIN,
-          scale_max: float = SCALE_MAX) -> np.ndarray:
+def scale(sequence: np.ndarray, scale_min: float = SCALE_MIN, scale_max: float = SCALE_MAX) -> np.ndarray:
     """
     Uniform spatial scaling: multiply every coordinate by a random factor.
 
@@ -114,28 +110,28 @@ def scale(sequence: np.ndarray,
     [0, 1], mild over/under-shoot is acceptable.
     """
 
-    # Come per il jitter, applichiamo la scala SOLO ai punti validi (non zero) per evitare 
+    # Come per il jitter, applichiamo la scala SOLO ai punti validi (non zero) per evitare
     # di far diventare "grandi" i punti che in realta non dovrebbero esserci
     seq = sequence.copy()
     T, F = seq.shape
     factor = random.uniform(scale_min, scale_max)
-    
+
     for t in range(T):
         coords = seq[t].reshape(-1, 3)
         valid_mask = np.any(coords != 0, axis=1)
-        
+
         if not np.any(valid_mask):
             continue
-            
+
         # Calcoliamo il centro geometrico (centroid) per x e y
         cx = np.mean(coords[valid_mask, 0])
         cy = np.mean(coords[valid_mask, 1])
-        
+
         # Ingrandiamo mantenendo il centro fisso
         coords[valid_mask, 0] = cx + factor * (coords[valid_mask, 0] - cx)
         coords[valid_mask, 1] = cy + factor * (coords[valid_mask, 1] - cy)
-        coords[valid_mask, 2] = coords[valid_mask, 2] * factor # la profondità si scala direttamente
-        
+        coords[valid_mask, 2] = coords[valid_mask, 2] * factor  # la profondità si scala direttamente
+
         seq[t] = coords.flatten()
     return seq
 
@@ -178,12 +174,8 @@ def mirror(sequence: np.ndarray) -> np.ndarray:
 
 # ────────────────────────── AUGMENTATION PIPELINE ───────────────────────────
 
-def augment(sequence: np.ndarray,
-            jitter_std: float = JITTER_STD,
-            drop_min: float = TDROP_MIN,
-            drop_max: float = TDROP_MAX,
-            scale_min: float = SCALE_MIN,
-            scale_max: float = SCALE_MAX) -> np.ndarray:
+
+def augment(sequence: np.ndarray, jitter_std: float = JITTER_STD, drop_min: float = TDROP_MIN, drop_max: float = TDROP_MAX, scale_min: float = SCALE_MIN, scale_max: float = SCALE_MAX) -> np.ndarray:
     """
     Apply a random combination of augmentations to one sequence.
 
@@ -199,17 +191,22 @@ def augment(sequence: np.ndarray,
     Returns a new array; the input is never modified.
     """
     aug = sequence.copy()
-    F = aug.shape[1]        # estraiamo il numero di features per frame (126 o 402) per poter applicare la logica del mirror SOLO alla modalità SOLO_MANI (126)
+    F = aug.shape[1]  # estraiamo il numero di features per frame (126 o 402) per poter applicare la logica del mirror SOLO alla modalità SOLO_MANI (126)
 
-    def do_jitter(seq): return jitter(seq, jitter_std)
-    def do_tdrop(seq): return temporal_drop(seq, drop_min, drop_max)
-    def do_scale(seq): return scale(seq, scale_min, scale_max)
+    def do_jitter(seq):
+        return jitter(seq, jitter_std)
+
+    def do_tdrop(seq):
+        return temporal_drop(seq, drop_min, drop_max)
+
+    def do_scale(seq):
+        return scale(seq, scale_min, scale_max)
 
     augmentations = [do_jitter, do_tdrop, do_scale]
 
     # ── spatial / temporal augmentations (pick 1 or 2) ──────────────────────
     n_apply = random.randint(1, 2)
-    chosen  = random.sample(augmentations, n_apply)
+    chosen = random.sample(augmentations, n_apply)
     for fn in chosen:
         aug = fn(aug)
 
@@ -221,6 +218,7 @@ def augment(sequence: np.ndarray,
 
 
 # ────────────────────────── MAIN LOGIC ───────────────────────────────────────
+
 
 def collect_existing_files(processed_dir: Path) -> dict[str, list[Path]]:
     """
@@ -234,9 +232,12 @@ def collect_existing_files(processed_dir: Path) -> dict[str, list[Path]]:
     files_by_word: dict[str, list[Path]] = {w: [] for w in TARGET_WORDS}
 
     for npy_path in sorted(processed_dir.glob("*.npy")):
-        word = npy_path.name.split("_")[0]
-        if word in files_by_word:
-            files_by_word[word].append(npy_path)
+        if "_garbage_" in npy_path.name:
+            files_by_word[GARBAGE_CLASS].append(npy_path)
+        else:
+            word = npy_path.name.split("_")[0]
+            if word in files_by_word:
+                files_by_word[word].append(npy_path)
 
     return files_by_word
 
@@ -278,14 +279,14 @@ def validate_feature_dim(sequence: np.ndarray, path: Path) -> bool:
 
 def run_augmentation(
     processed_dir: Path = PROCESSED_DIR,
-    target_count:  int  = TARGET_COUNT,
-    margin:        float = MARGIN,
-    seed:          int  = RANDOM_SEED,
-    jitter_std:    float = JITTER_STD,
-    drop_min:      float = TDROP_MIN,
-    drop_max:      float = TDROP_MAX,
-    scale_min:     float = SCALE_MIN,
-    scale_max:     float = SCALE_MAX,
+    target_count: int = TARGET_COUNT,
+    margin: float = MARGIN,
+    seed: int = RANDOM_SEED,
+    jitter_std: float = JITTER_STD,
+    drop_min: float = TDROP_MIN,
+    drop_max: float = TDROP_MAX,
+    scale_min: float = SCALE_MIN,
+    scale_max: float = SCALE_MAX,
 ) -> None:
 
     random.seed(seed)
@@ -315,15 +316,14 @@ def run_augmentation(
 
     for word in TARGET_WORDS:
         existing = files_by_word[word]
-        current  = len(existing)
-        needed   = max(0, target_count - current)
+        current = len(existing)
+        needed = max(0, target_count - current)
 
         if needed == 0:
             print(f"  {word:<20}  already at {current} — skipping.")
             continue
 
-        print(f"  {word:<20}  need {needed} new samples  "
-              f"(current {current} → target {target_count})")
+        print(f"  {word:<20}  need {needed} new samples  " f"(current {current} → target {target_count})")
 
         aug_idx = next_aug_index(existing, word)
 
@@ -331,31 +331,24 @@ def run_augmentation(
             # pick a random source file (sampling WITH replacement so we can
             # generate more samples than the original pool size)
             src_path = random.choice(existing)
-            src_seq  = np.load(str(src_path))
+            src_seq = np.load(str(src_path))
 
             if not validate_feature_dim(src_seq, src_path):
                 # try another file next iteration
                 continue
 
             # apply augmentations
-            aug_seq = augment(
-                src_seq,
-                jitter_std=jitter_std,
-                drop_min=drop_min,
-                drop_max=drop_max,
-                scale_min=scale_min,
-                scale_max=scale_max
-            )
+            aug_seq = augment(src_seq, jitter_std=jitter_std, drop_min=drop_min, drop_max=drop_max, scale_min=scale_min, scale_max=scale_max)
 
             # extract the original video name
             parent_filename = src_path.stem.split("_aug_")[0]
-            
+
             # build output filename:  word_aug_NNN.npy
             out_name = f"{parent_filename}_aug_{aug_idx:04d}.npy"
             out_path = processed_dir / out_name
             np.save(str(out_path), aug_seq)
 
-            aug_idx      += 1
+            aug_idx += 1
             total_generated += 1
 
             if (i + 1) % 20 == 0 or (i + 1) == needed:
@@ -371,7 +364,7 @@ def run_augmentation(
 
     final_counts = []
     for word in TARGET_WORDS:
-        files_by_word = collect_existing_files(processed_dir)   # re-scan
+        files_by_word = collect_existing_files(processed_dir)  # re-scan
         n = len(files_by_word[word])
         final_counts.append(n)
         bar = "█" * min(n, 60)
@@ -379,19 +372,16 @@ def run_augmentation(
 
     if final_counts:
         min_c, max_c = min(final_counts), max(final_counts)
-        mean_c       = sum(final_counts) / len(final_counts)
-        spread       = (max_c - min_c) / mean_c   # relative spread
+        mean_c = sum(final_counts) / len(final_counts)
+        spread = (max_c - min_c) / mean_c  # relative spread
 
         print()
-        print(f"  Min : {min_c}   Max : {max_c}   "
-              f"Mean : {mean_c:.1f}   Spread : {spread * 100:.1f} %")
+        print(f"  Min : {min_c}   Max : {max_c}   " f"Mean : {mean_c:.1f}   Spread : {spread * 100:.1f} %")
 
         if spread <= margin:
             print(f"\n  ✅  Dataset is balanced within the ±{int(margin*100)} % margin.")
         else:
-            print(f"\n  ⚠️   Spread {spread*100:.1f} % exceeds the "
-                  f"±{int(margin*100)} % margin — consider raising target_count "
-                  f"or investigating the source files.")
+            print(f"\n  ⚠️   Spread {spread*100:.1f} % exceeds the " f"±{int(margin*100)} % margin — consider raising target_count " f"or investigating the source files.")
 
     print(f"\n  Total new files generated: {total_generated}")
     print("=" * 62)
@@ -420,14 +410,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    run_augmentation(
-        processed_dir=args.processed_dir,
-        target_count=args.target_count,
-        margin=args.margin,
-        seed=args.seed,
-        jitter_std=args.jitter_std,
-        drop_min=args.tdrop_min,
-        drop_max=args.tdrop_max,
-        scale_min=args.scale_min,
-        scale_max=args.scale_max
-    )
+    run_augmentation(processed_dir=args.processed_dir, target_count=args.target_count, margin=args.margin, seed=args.seed, jitter_std=args.jitter_std, drop_min=args.tdrop_min, drop_max=args.tdrop_max, scale_min=args.scale_min, scale_max=args.scale_max)

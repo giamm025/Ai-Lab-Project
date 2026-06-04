@@ -22,18 +22,18 @@ sys.path.append(str(CURRENT_DIR))
 esperimenti_tuning = [
     {
         "version": "v3", "desc": "tuning_1", "modalita": "MANI_VOLTO",
-        "hidden_size": 128, "num_layers": 1, "learning_rate": 1e-3, "batch_size": 8, "patience": 15,
-        "label": "Tuning 1 (128x1, LR 1e-3)"
+        "hidden_size": 64, "num_layers": 1, "learning_rate": 1e-3, "batch_size": 8, "patience": 15, "dropout": 0.0,
+        "label": "Tuning 1 (64x1, Leggero)"
     },
     {
         "version": "v3", "desc": "tuning_2", "modalita": "MANI_VOLTO",
-        "hidden_size": 128, "num_layers": 2, "learning_rate": 5e-4, "batch_size": 8, "patience": 20,
-        "label": "Tuning 2 (128x2, LR 5e-4)"
+        "hidden_size": 256, "num_layers": 2, "learning_rate": 5e-4, "batch_size": 8, "patience": 20, "dropout": 0.0,
+        "label": "Tuning 2 (256x2, Pesante - Overfitting)"
     },
     {
         "version": "v3", "desc": "tuning_3", "modalita": "MANI_VOLTO",
-        "hidden_size": 256, "num_layers": 2, "learning_rate": 3e-4, "batch_size": 16, "patience": 20,
-        "label": "Tuning 3 (256x2, LR 3e-4)"
+        "hidden_size": 128, "num_layers": 2, "learning_rate": 1e-3, "batch_size": 8, "patience": 20, "dropout": 0.4,
+        "label": "Tuning 3 (128x2, Ottimale + Dropout 0.4)"
     },
 ]
 

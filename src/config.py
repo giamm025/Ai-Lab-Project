@@ -45,8 +45,8 @@ L'idea è che ogni volta che implementiamo una nuova feature IMPORTANTE (es alla
 documentiamo il tutto come fosse un nuovo modello proprio. una nuova versione. Se non facciamo cosi andremmo sempre a sovrascrivere 
 il modello preccedente senz amantenere la "cronologia" dei miglioramenti. 
 """
-EXPERIMENT_VERSION = "v3"
-EXPERIMENT_DESC = "L_prova_webcam"
+EXPERIMENT_VERSION = "v4"
+EXPERIMENT_DESC = "L_unknown_class"  
 EXPERIMENT_SUFFIX = f"{EXPERIMENT_VERSION}_{EXPERIMENT_DESC}".strip("_")
 
 

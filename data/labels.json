@@ -4,5 +4,6 @@
     "late": 2,
     "not-yet": 3,
     "misunderstand": 4,
-    "understand": 5
+    "understand": 5,
+    "unknown": 6
 }

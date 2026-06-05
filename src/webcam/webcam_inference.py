@@ -269,15 +269,10 @@ def main():
         description="Real-time ASL inference from webcam with R-key recording toggle.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
-        "--modalita",
-        type=str,
-        default="MANI_VOLTO",
-        choices=["MANI_VOLTO", "SOLO_MANI"],
-    )
-    parser.add_argument("--version", type=str, default=None, help="Es: v1, v2 (Default: legge da config.py)")
-    parser.add_argument("--desc", type=str, default=None, help="Es: S, M, L (Default: legge da config.py)")
-    parser.add_argument("--threshold", type=float, default=0.60, help="Soglia di confidenza (es. 0.60)")
+    parser.add_argument("--modalita", type=str, default="MANI_VOLTO", choices=["MANI_VOLTO", "SOLO_MANI"])
+    parser.add_argument("--version", type=str, help="Versione esperimento (es. v1, v2). Se omesso, usa config.py")
+    parser.add_argument("--desc", type=str, help="Taglia dataset (es. S, M, L). Se omesso, usa config.py")
+    parser.add_argument("--threshold", type=float, default=0.60, help="Soglia di confidenza (es. 0.60 per 60%)")
     parser.add_argument("--camera_index", type=int, default=0)
     args = parser.parse_args()
 
@@ -285,7 +280,7 @@ def main():
     camera_index = args.camera_index
     
     version = args.version if args.version is not None else EXPERIMENT_VERSION
-    desc = args.desc if args.desc is not None else EXPERIMENT_DESC
+    desc =    args.desc    if args.desc    is not None else EXPERIMENT_DESC
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[INFO] Device:    {device}")

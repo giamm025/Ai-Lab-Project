@@ -11,7 +11,7 @@ from sklearn.metrics import confusion_matrix, classification_report
 from torch.utils.data import DataLoader
 import argparse
 
-from config import MODELS_DIR, RESULTS_DIR, PROCESSED_DIR, TARGET_WORDS, LABEL_MAP, SEED, GARBAGE_CLASS
+from config import MODELS_DIR, RESULTS_DIR, PROCESSED_DIR, TARGET_WORDS, LABEL_MAP, SEED, EXPERIMENT_VERSION, EXPERIMENT_DESC, GARBAGE_CLASS
 from neural_network.dataset import get_stratified_dataset_splits
 from neural_network.model import SignLanguageLSTM
 
@@ -90,15 +90,21 @@ Da cui ne deduciamo che:
 def draw_confusion_matrix(solutions, precitions, target_words, save_dir, modalita):
     cm = confusion_matrix(solutions, precitions)
 
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=target_words, yticklabels=target_words)
+    plt.figure(figsize=(10, 7)) 
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=target_words, yticklabels=target_words, cbar_kws={'label': 'Numero di video'})
 
-    plt.title(f"Confusion Matrix ({modalita})")
-    plt.ylabel("Valore Reale (Quello che era davvero)")
-    plt.xlabel("Valore Predetto (Quello che ha capito la rete)")
+    # aggiungiamo titoli ed etichette per rendere il grafico più chiaro e intuitivo
+    plt.title(f"Confusion Matrix ({modalita})", fontsize=14, fontweight='bold', pad=15)
+    plt.ylabel("Valore Reale (Quello che era davvero)", fontsize=12, fontweight='bold', labelpad=10)
+    plt.xlabel("Valore Predetto (Quello che ha capito la rete)", fontsize=12, fontweight='bold', labelpad=10)
+    
+    # ruotiamo le etichette per renderle più leggibili, e aggiustiamo i margini
+    plt.xticks(rotation=45, ha='right', fontsize=10)
+    plt.yticks(rotation=0, fontsize=10)
+    plt.tight_layout()
 
     cm_path = save_dir / f"confusion_matrix_{modalita}.png"
-    plt.savefig(cm_path)
+    plt.savefig(cm_path, dpi=150) 
     plt.close()
     print(f"📊 Confusion Matrix salvata in: {cm_path}")
 
@@ -175,16 +181,20 @@ if __name__ == "__main__":
 
     # ------------------------------------------ PARSER ------------------------------------------
     parser = argparse.ArgumentParser(description="Valuta il modello e genera grafici.")
-    parser.add_argument("--modalita", type=str, choices=["SOLO_MANI", "MANI_VOLTO"], required=True)
-    parser.add_argument("--version", type=str, required=True)
-    parser.add_argument("--desc", type=str, default="")
+    parser.add_argument("--modalita", type=str, choices=["SOLO_MANI", "MANI_VOLTO"], default="MANI_VOLTO")
+    parser.add_argument("--version", type=str, help="Versione esperimento (es. v1, v2). Se omesso, usa config.py")
+    parser.add_argument("--desc", type=str, help="Taglia dataset (es. S, M, L). Se omesso, usa config.py")
     parser.add_argument("--hidden_size", type=int, default=64)
     parser.add_argument("--num_layers", type=int, default=1)
     parser.add_argument("--threshold", type=float, default=0.60, help="Soglia di confidenza (es. 0.60 per 60%)")
     args = parser.parse_args()
+    
     MODALITA = args.modalita
+    VERSION  = args.version if args.version is not None else EXPERIMENT_VERSION
+    DESC     = args.desc    if args.desc    is not None else EXPERIMENT_DESC
+    
     # ------------------------------------------- PATHS ---------------------------------------
-    suffix = f"{args.version}_{args.desc}".strip("_")
+    suffix = f"{VERSION}_{DESC}".strip("_")
     SAVE_PATH = RESULTS_DIR / suffix / MODALITA
     SAVE_PATH.mkdir(parents=True, exist_ok=True)
 
@@ -194,8 +204,8 @@ if __name__ == "__main__":
         sys.exit(1)
     csv_file = SAVE_PATH / "training_history.csv"
 
-    if args.version == "v3": dataset_folder_name = "v2_processed_L"
-    else:                    dataset_folder_name = f"{args.version}_processed_{args.desc}"
+    if VERSION == "v3": dataset_folder_name = "v2_processed_L"
+    else:               dataset_folder_name = f"{VERSION}_processed_{DESC}"
     dynamic_processed_dir = PROCESSED_DIR.parent / dataset_folder_name
     
     if not dynamic_processed_dir.exists():
@@ -213,7 +223,7 @@ if __name__ == "__main__":
     test_dataloader = DataLoader(test_data, batch_size=8, shuffle=False)
 
     # carichiamo il modello, eseguiamo la fase di test per ottenere soluzioni e predizioni, e poi generiamo i grafici e report finali
-    model = load_trained_model(model_file, MODALITA, args.version, args.hidden_size, args.num_layers, device)
+    model = load_trained_model(model_file, MODALITA, VERSION, args.hidden_size, args.num_layers, device)
     solutions, precitions = test_loop(model, test_dataloader, MODALITA, device, confidence_threshold=args.threshold)
     target_words = [word for word, idx in sorted(LABEL_MAP.items(), key=lambda item: item[1])]
 

@@ -43,7 +43,7 @@ import torch
 import torch.nn.functional as F
 import mediapipe as mp
 
-from config import LABEL_MAP, TARGET_WORDS, MODELS_DIR, EXPERIMENT_VERSION, EXPERIMENT_DESC
+from config import LABEL_MAP, TARGET_WORDS, MODELS_DIR, EXPERIMENT_VERSION, EXPERIMENT_DESC, GARBAGE_CLASS
 from extract_features import convert_keypoints
 from neural_network.model import SignLanguageLSTM
 
@@ -127,7 +127,8 @@ def load_model(modalita: str, version: str, desc: str, device: torch.device) -> 
 # ---------------------------------------------------------------------------
 
 def run_inference(frames_keypoints: list, modalita: str,
-                  model: SignLanguageLSTM, device: torch.device):
+                  model: SignLanguageLSTM, device: torch.device,
+                  confidence_threshold: float = 0.60):
     """
     Takes the raw list of per-frame keypoint arrays, converts to a tensor,
     and returns (predicted_word, confidence_pct, all_probs_dict).
@@ -145,15 +146,23 @@ def run_inference(frames_keypoints: list, modalita: str,
         probs      = F.softmax(logits, dim=1)
         conf, pidx = probs.max(dim=1)
 
-    pidx       = pidx.item()
-    confidence = conf.item() * 100.0
+    pidx           = pidx.item()
+    confidence_val = conf.item() 
+    confidence_pct = confidence_val * 100.0
+    
     idx_to_word = {v: k for k, v in LABEL_MAP.items()}
-    predicted   = idx_to_word.get(pidx, f"<unknown {pidx}>")
+    
+    # --- LOGICA UNKNOWN CLASS (Out-Of-Distribution Thresholding) ---
+    if confidence_val < confidence_threshold:
+        predicted = GARBAGE_CLASS
+    else:
+        predicted = idx_to_word.get(pidx, f"<unknown {pidx}>")
+
     all_probs   = {
         idx_to_word.get(i, str(i)): round(probs[0, i].item() * 100.0, 2)
         for i in range(probs.shape[1])
     }
-    return predicted, confidence, all_probs
+    return predicted, confidence_pct, all_probs
 
 
 # ---------------------------------------------------------------------------
@@ -268,6 +277,7 @@ def main():
     )
     parser.add_argument("--version", type=str, default=None, help="Es: v1, v2 (Default: legge da config.py)")
     parser.add_argument("--desc", type=str, default=None, help="Es: S, M, L (Default: legge da config.py)")
+    parser.add_argument("--threshold", type=float, default=0.60, help="Soglia di confidenza (es. 0.60)")
     parser.add_argument("--camera_index", type=int, default=0)
     args = parser.parse_args()
 
@@ -393,7 +403,7 @@ def main():
                         result = {"word": "TOO SHORT", "confidence": 0.0, "all_probs": {}}
                     else:
                         predicted, confidence, all_probs = run_inference(
-                            frames_keypoints, modalita, model, device
+                            frames_keypoints, modalita, model, device, args.threshold
                         )
                         result = {
                             "word":       predicted,

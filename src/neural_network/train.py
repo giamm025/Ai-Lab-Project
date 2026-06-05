@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from config import TARGET_WORDS, PROCESSED_DIR, MODELS_DIR, RESULTS_DIR, SEED, EXPERIMENT_VERSION, EXPERIMENT_DESC
+from config import TARGET_WORDS, PROCESSED_DIR, MODELS_DIR, RESULTS_DIR, SEED, EXPERIMENT_VERSION, EXPERIMENT_DESC, LABEL_MAP, GARBAGE_CLASS
 from dataset import get_stratified_dataset_splits
 from model import SignLanguageLSTM
 
@@ -158,11 +158,15 @@ def train_loop(train_dataloader, model, loss_fn, optimizer):
 """
 7. VALIDATION LOOP
 """
-def val_loop(dataloader, model, loss_fn, is_test=False):
+def val_loop(dataloader, model, loss_fn, is_test=False, confidence_threshold=0.60):
     
     model.eval()
     total_loss = 0.0
     num_batches = 0
+    
+    # recuperiamo l'indice della classe "unknown"
+    unknown_index = LABEL_MAP[GARBAGE_CLASS]
+
     with torch.no_grad():
         for x, y, lengths in dataloader:
             
@@ -175,8 +179,19 @@ def val_loop(dataloader, model, loss_fn, is_test=False):
             # prendiamo le risposte del modello e calcoliamo la loss, accumulando i risultati per poi fare la media alla fine dell'epoca
             pred = model(x, lengths)
             total_loss += loss_fn(pred, y).item()
+            
+            # --- LOGICA UNKNOWN CLASS (Soglia di Confidenza) ---
+            # estraiamo la probabilità più alta e l'indice predetto
+            probs = torch.softmax(pred, dim=1)
+            max_probs, preds = torch.max(probs, dim=1)
+            low_confidence_mask = max_probs < confidence_threshold
+            
+            # forziamo le predizioni insicure a diventare 'unknown'
+            preds[low_confidence_mask] = unknown_index
+
+            # calcoliamo l'accuratezza
             num_batches += 1
-            metric(pred, y)
+            metric(preds, y)
 
     avg_loss = total_loss / num_batches
     acc = metric.compute().item()

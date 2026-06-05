@@ -1,39 +1,28 @@
 import json
 from pathlib import Path
 
-""" 
+''' 
 ==========================================================================
 1. GESTIONE DEI PERCORSI (Pathlib)
 ==========================================================================
-"""
+'''
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-RAW_DIR = ROOT_DIR / "data" / "raw"
-PROCESSED_DIR = ROOT_DIR / "data" / "processed"
-LABELS_FILEPATH = ROOT_DIR / "data" / "labels.json"
-DATASETS_DIR = ROOT_DIR / "datasets"
-MODELS_DIR = ROOT_DIR / "models"
-RESULTS_DIR = ROOT_DIR / "results"
+ROOT_DIR        = Path(__file__).resolve().parent.parent
+RAW_DIR         = ROOT_DIR / 'data'     / 'raw'
+PROCESSED_DIR   = ROOT_DIR / 'data'     / 'processed'
+LABELS_FILEPATH = ROOT_DIR / 'data'     / 'labels.json'
+DATASETS_DIR    = ROOT_DIR / 'datasets'
+MODELS_DIR      = ROOT_DIR / 'models'
+RESULTS_DIR     = ROOT_DIR / 'results'
 
 for directory in [RAW_DIR, PROCESSED_DIR, DATASETS_DIR, MODELS_DIR, RESULTS_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
 
-# I veri e propri segni ASL che vogliamo riconoscere dal dataset
-TARGET_SIGNS = ["happen", "finally", "late", "not-yet", "misunderstand", "understand"]
+# le parole che utilizzeremo per costruire il nostro dataset, addestrare e testare il modello (prendendo solo i video relativi a queste parole)
+TARGET_WORDS = ["happen", "finally", "late", "not-yet", "misunderstand", "understand"]
 
-# Il nome della classe "calderone" in cui raggrupperemo i video fuori vocabolario
+# aggiungiamo una classe "garbage" per tutte le parole che il modello "non riesce a riconoscere" (es. nessuna parola raggiunge una determinata threshold di confidenza)
 GARBAGE_CLASS = "unknown"
-
-# La lista finale delle 7 classi del nostro modello (usata per labels.json e l'addestramento)
-TARGET_WORDS = TARGET_SIGNS + [GARBAGE_CLASS]
-
-# Parole significativamente diverse usate per riempire la classe unknown
-# Dividiamo ESPLICITAMENTE la pool per garantire che il test set veda segni MAI visti nel training
-UNKNOWN_TRAIN_VAL_POOL = ["funny", "hot"]    # Segni usati per insegnare al modello il concetto di "scarto"
-UNKNOWN_TEST_POOL = ["scared", "smell"]      # Segni usati ESCLUSIVAMENTE per testare la tenuta del modello (Zero-Shot)
-
-# La pool completa serve ancora ai parser per sapere cosa scaricare
-UNKNOWN_WORDS_POOL = UNKNOWN_TRAIN_VAL_POOL + UNKNOWN_TEST_POOL
 
 SEED = 42
 
@@ -45,36 +34,26 @@ L'idea è che ogni volta che implementiamo una nuova feature IMPORTANTE (es alla
 documentiamo il tutto come fosse un nuovo modello proprio. una nuova versione. Se non facciamo cosi andremmo sempre a sovrascrivere 
 il modello preccedente senz amantenere la "cronologia" dei miglioramenti. 
 """
-EXPERIMENT_VERSION = "v4"
-EXPERIMENT_DESC = "L_unknown_class"  
-EXPERIMENT_SUFFIX = f"{EXPERIMENT_VERSION}_{EXPERIMENT_DESC}".strip("_")
+EXPERIMENT_VERSION = "v3"
+EXPERIMENT_DESC = "L_prova_webcam"
+EXPERIMENT_SUFFIX = f"{EXPERIMENT_VERSION}_{EXPERIMENT_DESC}".strip('_')
 
 
 """Restituisce il path corretto per salvare/caricare il modello in base alla modalità."""
-
-
 def GET_MODEL_PATH(modalita):
-    filename = f"model_{EXPERIMENT_SUFFIX}_{modalita}.pth"
-    return MODELS_DIR / filename
-
+    return MODELS_DIR / f"model_{EXPERIMENT_SUFFIX}_{modalita}.pth"
 
 """Restituisce la cartella specifica dell'esperimento dentro results/ e la crea se non esiste."""
-
-
 def GET_EXPERIMENT_DIR(modalita):
     exp_dir = RESULTS_DIR / EXPERIMENT_SUFFIX / modalita
     exp_dir.mkdir(parents=True, exist_ok=True)
     return exp_dir
 
-
 """Restituisce il path del file CSV per l'esperimento."""
-
-
 def GET_CSV_PATH(modalita):
     csv_path = RESULTS_DIR / EXPERIMENT_SUFFIX / modalita / f"training_history.csv"
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     return csv_path
-
 
 """ 
 ==========================================================================
@@ -82,11 +61,11 @@ GESTIONE ETICHETTE (LABELS)
 ==========================================================================
 """
 
-
 # crea il labels.json basandosi sugli indici di TARGET_WORDS
 def create_label_map():
     print(f"Creazione del dizionario immutabile in {LABELS_FILEPATH}...")
     label_map = {word: idx for idx, word in enumerate(TARGET_WORDS)}
+    label_map[GARBAGE_CLASS] = len(TARGET_WORDS)
     with open(LABELS_FILEPATH, "w") as f:
         json.dump(label_map, f, indent=4)
     return label_map

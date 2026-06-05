@@ -20,8 +20,6 @@ from neural_network.model import SignLanguageLSTM
 # =====================================================================
 
 """Genera il grafico con le curve di Loss e Accuracy, per un confronto Train vs Val"""
-
-
 def plot_learning_curves(csv_path, save_dir, modalita):
 
     if not csv_path.exists():
@@ -69,8 +67,6 @@ I parametri della funzione sono:
     - save_dir:     cartella dove salvare il report
     - modalita:     SOLO_MANI o MANI_VOLTO (per distinguere i file dei due esperimenti)
 """
-
-
 def generate_report(solutions, precitions, target_words, save_dir, modalita):
 
     report = classification_report(solutions, precitions, labels=list(range(len(target_words))), target_names=target_words, zero_division=0)
@@ -91,8 +87,6 @@ Da cui ne deduciamo che:
     - confusion_matrix[x:x]: quante volte il modello ha indovinato correttamente la parola x (la risposta corretta era x ma il modello ha detto x)
     - confusion_matrix[x:y]: quante volte il modello ha confuso la parola x con la parola y  (la risposta corretta era x ma il modello ha detto y)
 """
-
-
 def draw_confusion_matrix(solutions, precitions, target_words, save_dir, modalita):
     cm = confusion_matrix(solutions, precitions)
 
@@ -113,8 +107,6 @@ def draw_confusion_matrix(solutions, precitions, target_words, save_dir, modalit
 Carica il modello specificato e lo prepara per la fase di test. Garantisce RETROCOMPATIBILITÀ con i modelli 
 v1_MANI_VOLTO (che aspettano 1530 coordinate piuttosto che 402 delle versioni successive)
 """
-
-
 def load_trained_model(model_path, modalita, version, hidden_size, num_layers, device):
     # RETROCOMPATIBILITÀ: Se il modello è v1 ed è MANI_VOLTO, si aspetta 1530 ingressi, altrimenti 402
     if modalita == "SOLO_MANI":
@@ -135,39 +127,41 @@ def load_trained_model(model_path, modalita, version, hidden_size, num_layers, d
 Ri-esegue la fase di test per ottenere la lista di predizioni (risposte del modello) e la lista di soluzioni.
 Include una logica di soglia di confidenza (Zero-Shot Thresholding): se il modello non è sicuro almeno al X% 
 della sua risposta, la scarta e la classifica forzatamente come 'unknown'.
+
+NB. Questa funzione qui è diversa da val_loop() di train.py!!!! Li eseguiamo il test AD OGNI EPOCA per ottenere LOSS e ACCURACY 
+    di validation e decretare un "miglior modello" da salvare. 
+    
+    QUI, invece, eseguiamo il test solo sul MODELLO MIGLIORE per ottenere PREDICTIONS e SOLUTIONS, tramite cui potremo calcolare
+    F1 Score, Confusion MAtrix, Report, Grafici etc... 
+    
+    Mischiare le due logice NON avrebbe senso poiche:
+        - in tran.py ci ritroveremmo i dati per genrare grafici, che non servono a niente e rallentano l'esecuzione
+        - in test.py ci ritroveremmo i dati per decretare il miglior modello, che non servono a niente siccome è gia 
+                     stato scelto e salvato in precedenza da train.py
 """
-
-
 def test_loop(model, dataloader, modalita, device, confidence_threshold=0.60):
     precitions = []
     solutions = []
-
-    # Recuperiamo l'indice numerico assegnato alla classe "unknown"
     unknown_index = LABEL_MAP[GARBAGE_CLASS]
-
-    print(f"🤖 Inizio test sul modello salvato... (Soglia di Confidenza: {confidence_threshold*100}%)")
-
+    print("🤖 Inizio test sul modello salvato...")
     with torch.no_grad():
         for x, y, lengths in dataloader:
             if modalita == "SOLO_MANI":
                 x = x[:, :, :126]
             x, y, lengths = x.to(device), y.to(device), lengths.cpu()
 
-            # 1. Il modello restituisce i "logits" (numeri grezzi)
             outputs = model(x, lengths)
 
-            # 2. Convertiamo i logits in probabilità percentuali (da 0.0 a 1.0) tramite Softmax
+            # --- LOGICA UNKNOWN CLASS (Soglia di Confidenza) ---
+            # estraiamo la probabilità più alta e l'indice predetto
             probs = torch.softmax(outputs, dim=1)
-
-            # 3. Estraiamo la probabilità più alta (max_probs) e l'indice della parola scelta (preds)
             max_probs, preds = torch.max(probs, dim=1)
-
-            # 4. Creiamo una maschera booleana: True per i video in cui la confidenza è SOTTO la soglia
             low_confidence_mask = max_probs < confidence_threshold
-
-            # 5. Sovrascriviamo le predizioni incerte forzandole a diventare 'unknown'
+            
+            # forziamo le predizioni insicure a diventare 'unknown'
             preds[low_confidence_mask] = unknown_index
 
+            # calcoliamo l'accuratezza
             precitions.extend(preds.cpu().numpy())
             solutions.extend(y.cpu().numpy())
 
@@ -188,9 +182,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_layers", type=int, default=1)
     parser.add_argument("--threshold", type=float, default=0.60, help="Soglia di confidenza (es. 0.60 per 60%)")
     args = parser.parse_args()
-
     MODALITA = args.modalita
-
     # ------------------------------------------- PATHS ---------------------------------------
     suffix = f"{args.version}_{args.desc}".strip("_")
     SAVE_PATH = RESULTS_DIR / suffix / MODALITA
@@ -200,15 +192,12 @@ if __name__ == "__main__":
     if not model_file.exists():
         print(f"❌ Errore: Modello non trovato ({model_file}). Salto valutazione.")
         sys.exit(1)
-
     csv_file = SAVE_PATH / "training_history.csv"
 
-    if args.version == "v3":
-        dataset_folder_name = "v2_processed_L"
-    else:
-        dataset_folder_name = f"{args.version}_processed_{args.desc}"
+    if args.version == "v3": dataset_folder_name = "v2_processed_L"
+    else:                    dataset_folder_name = f"{args.version}_processed_{args.desc}"
     dynamic_processed_dir = PROCESSED_DIR.parent / dataset_folder_name
-
+    
     if not dynamic_processed_dir.exists():
         print(f"⚠️ Cartella specifica non trovata ({dynamic_processed_dir}). Uso PROCESSED_DIR di default.")
         dynamic_processed_dir = PROCESSED_DIR
@@ -225,10 +214,7 @@ if __name__ == "__main__":
 
     # carichiamo il modello, eseguiamo la fase di test per ottenere soluzioni e predizioni, e poi generiamo i grafici e report finali
     model = load_trained_model(model_file, MODALITA, args.version, args.hidden_size, args.num_layers, device)
-
-    # Passiamo la soglia specificata tramite gli argomenti del parser
     solutions, precitions = test_loop(model, test_dataloader, MODALITA, device, confidence_threshold=args.threshold)
-
     target_words = [word for word, idx in sorted(LABEL_MAP.items(), key=lambda item: item[1])]
 
     # ----------------------------------- GENERAZIONE GRAFICI E REPORT ------------------------------------

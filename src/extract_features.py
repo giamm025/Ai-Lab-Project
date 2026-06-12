@@ -50,37 +50,25 @@ def process_video(video_path, save_path):
 
 
 # ---------------------------------------------------------------------------
-# INDICI MEDIAPIPE FACE MESH: solo i marcatori linguisticamente rilevanti
-# (NMM = Non-Manual Markers) per la LIS e le lingue dei segni in generale.
-# Fonte: topologia ufficiale MediaPipe Face Mesh (468 landmark totali).
+# INDICI MEDIAPIPE
 # ---------------------------------------------------------------------------
-# LABBRA — 40 punti (contorno esterno + interno)
-# Coprono la forma della bocca: apertura, arrotondamento, morfemi orali.
+# LABBRA — 40 punti
 NMM_LIPS = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95, 185, 40, 39, 37, 0, 267, 269, 270, 409, 415, 310, 311, 312, 13, 82, 81, 80, 191, 78]  # 40 landmark
 
-# OCCHIO SINISTRO (dell'inquadrato) — 16 punti (contorno palpebrale)
-# "Sinistra/Destra" in MediaPipe si riferisce SEMPRE alla prospettiva del soggetto ripreso,
-# NON alla prospettiva di chi guarda il monitor.
-# Verificato da: face_mesh_connections.py → FACEMESH_LEFT_EYE
+# OCCHIO SINISTRO — 16 punti
 NMM_LEFT_EYE = [249, 263, 362, 373, 374, 380, 381, 382, 384, 385, 386, 387, 388, 390, 398, 466]  # 16 landmark
 
-# OCCHIO DESTRO (dell'inquadrato) — 16 punti (contorno palpebrale)
-# Verificato da: face_mesh_connections.py → FACEMESH_RIGHT_EYE
+# OCCHIO DESTRO — 16 punti 
 NMM_RIGHT_EYE = [7, 33, 133, 144, 145, 153, 154, 155, 157, 158, 159, 160, 161, 163, 173, 246]  # 16 landmark
 
-# SOPRACCIGLIO SINISTRO (dell'inquadrato) — 10 punti
-# Le sopracciglia sono marcatori grammaticali primari (domanda sì/no,
-# negazione, topics). Sono il motivo principale per includere il volto.
-# Verificato da: face_mesh_connections.py → FACEMESH_LEFT_EYEBROW
+# SOPRACCIGLIO SINISTRO — 10 punti
 NMM_LEFT_EYEBROW = [276, 282, 283, 285, 293, 295, 296, 300, 334, 336]  # 10 landmark
 
-# SOPRACCIGLIO DESTRO (dell'inquadrato) — 10 punti
-# Verificato da: face_mesh_connections.py → FACEMESH_RIGHT_EYEBROW
+# SOPRACCIGLIO DESTRO — 10 punti
 NMM_RIGHT_EYEBROW = [46, 52, 53, 55, 63, 65, 66, 70, 105, 107]  # 10 landmark
 
-# Indice unico, ordinato, senza duplicati — usato per il filtraggio
+# Indice unico, ordinato, senza duplicati, usato per il filtraggio
 NMM_FACE_INDICES = sorted(set(NMM_LIPS + NMM_LEFT_EYE + NMM_RIGHT_EYE + NMM_LEFT_EYEBROW + NMM_RIGHT_EYEBROW))
-# Totale: 92 landmark × 3 coordinate = 276 valori per frame
 
 
 # funzione per convertire i risultati di MediaPipe in un array di 402 numeri
@@ -117,19 +105,21 @@ def convert_keypoints(mp_keypoints):
         filtered = [[all_landmarks[i].x, all_landmarks[i].y, all_landmarks[i].z] for i in NMM_FACE_INDICES]
         face_arr = np.array(filtered).flatten()  # 92 * 3 = 276 valori
     else:
-        face_arr = np.zeros(len(NMM_FACE_INDICES) * 3)  # 276 zeri
+        face_arr = np.zeros(len(NMM_FACE_INDICES) * 3) 
 
     return np.concatenate([lh, rh, face_arr])
 
 
-# ------------------------------------------------------ MAIN ------------------------------------------------------
+# ------------------------------------------------------ 
+# MAIN 
+# ------------------------------------------------------
 if __name__ == "__main__":
 
     print("\n--- INIZIO ESTRAZIONE MASSIVA (DA TUTTI I DATASET) ---")
     video_processati = 0
     video_saltati = 0
 
-    # Leggiamo TUTTI i file mp4 presenti nella cartella data/raw/ (indipendentemente da quale dataset provengano)
+    # leggiamo TUTTI i file mp4 presenti nella cartella data/raw/ (indipendentemente da quale dataset provengano)
     for video_path in RAW_DIR.glob("*.mp4"):
 
         # dal filename estriamo la parola (il formato del nostro dataet è sempre parola_dataset_id.mp4)

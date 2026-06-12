@@ -8,7 +8,7 @@ sys.path.append(str(current_dir))
 from config import PROCESSED_DIR, TARGET_WORDS
 
 def count_npy_files():
-    # Inizializziamo il dizionario con le TARGET_WORDS per mostrare anche gli 0
+
     word_counts = {word: 0 for word in TARGET_WORDS}
     unknown_words = Counter()
 
@@ -20,15 +20,13 @@ def count_npy_files():
 
     # Iteriamo su tutti i file .npy
     for npy_file in PROCESSED_DIR.glob("*.npy"):
-        # Il formato del file è "parola_dataset_id.npy", quindi estraiamo la parola
-        word = npy_file.name.split("_")[0]
 
+        word = npy_file.name.split("_")[0]
         if word in word_counts:
             word_counts[word] += 1
         else:
             unknown_words[word] += 1
 
-    # Stampa del resoconto
     print("=====================================================")
     print("📊 RESOCONTO FILE .NPY PER PAROLA")
     print("=====================================================")

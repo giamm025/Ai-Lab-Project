@@ -1,150 +1,95 @@
-Sign Language Recognition (LSTM + MediaPipe)
+# Sign Language Recognition (LSTM + MediaPipe)
 
-An end-to-end Machine Learning pipeline for American Sign Language (ASL) / Sign Language recognition. This project leverages MediaPipe Holistic for extracting spatial keypoints (hands and facial Non-Manual Markers) and a PyTorch LSTM Neural Network for temporal sequence classification.
+Progetto universitario di Machine Learning per il riconoscimento automatico della Lingua dei Segni Americana (ASL) tramite l'estrazione di keypoint spaziali con MediaPipe e la classificazione temporale con reti LSTM in PyTorch.
 
-The pipeline includes automated dataset downloading, processing, data augmentation, model training, evaluation, and real-time webcam inference.
 
-✨ Features
+## 📂 Struttura delle Cartelle
 
-Multi-Dataset Aggregation: Combines data from major Kaggle ASL datasets (ASLLVD, ASL Citizen, MS-ASL, WLASL).
-
-Robust Feature Extraction: Uses MediaPipe to extract keypoints. Supports two modes:
-
-SOLO_MANI (126 features): Left and right hand tracking.
-
-MANI_VOLTO (402 features): Hands + 276 filtered facial keypoints critical for sign language (Non-Manual Markers like eyebrows, eyes, and lips).
-
-Data Augmentation: Balances dataset classes using spatial jitter, temporal dropping, spatial scaling, and horizontal mirroring.
-
-PyTorch LSTM: Custom LSTM architecture with dynamic padding via pack_padded_sequence and confidence thresholding for an "unknown/garbage" class.
-
-Real-time Inference: Live webcam inference script with a custom OpenCV HUD, real-time predictions, and confidence probability distributions.
-
-📂 Repository Structure
-
+```text
 Ai-Lab-Project/
-│
-├── data/                       # Data storage (created dynamically)
-│   ├── raw/                    # Raw .mp4 clips
-│   └── processed/              # Extracted .npy MediaPipe sequences
-│
-├── datasets/                   # Downloaded Kaggle datasets
-├── models/                     # Saved PyTorch models (.pth)
-├── results/                    # Training histories, graphs, and reports
-│
-└── src/
-    ├── config.py               # Global configurations, labels, and target words
-    ├── extract_features.py     # MediaPipe video-to-keypoint converter
-    ├── count_datset.py         # Utility to count original vs augmented data
-    │
-    ├── enlarge_dataset/        # Dataset Acquisition & Augmentation
-    │   ├── download_datasets.py
-    │   ├── augment_dataset.py
-    │   └── count_processed_files.py
-    │
-    ├── parsers/                # Dataset-specific metadata parsers & video clippers
-    │   ├── ASLCitizen_parser.py
-    │   ├── MSASL_parser.py
-    │   └── WLASL_parser.py
-    │
-    ├── neural_network/         # PyTorch Model, Training, and Evaluation
-    │   ├── dataset.py          # PyTorch Dataset & Dataloaders
-    │   ├── model.py            # LSTM Architecture
-    │   ├── train.py            # Training loop with Early Stopping
-    │   ├── test.py             # Evaluation (F1-score, Confusion Matrix, etc.)
-    │   ├── automatize_train_and_test.py
-    │   └── tuning.py
-    │
-    └── webcam/                 # Inference Scripts
-        ├── predict_single.py   # Run model on a single .mp4 file
-        └── webcam_inference.py # Live webcam inference with OpenCV HUD
+├── data/                       # Dati generati a runtime (non versionati)
+│   ├── raw/                    # Clip video originali ritagliati (.mp4)
+│   └── processed/              # Coordinate estratte via MediaPipe (.npy)
+├── datasets/                   # Dati raw scaricati da Kaggle
+├── models/                     # Checkpoint dei modelli PyTorch addestrati (.pth)
+├── results/                    # Output (grafici, learning curve, matrici di confusione)
+└── src/                        # Codice sorgente della pipeline
+    ├── config.py               # Parametri globali, path e target words
+    ├── extract_features.py     # Script principale estrazione feature
+    ├── enlarge_dataset/        # Moduli per Download e Augmentation
+    ├── parsers/                # Script di parsing specifici per dataset
+    ├── neural_network/         # Dataset wrapper, architettura LSTM, loop di Train/Test
+    └── webcam/                 # Script per l'inferenza su file e via webcam live
+```
 
+## ⚙️ Installazione
 
-🚀 Pipeline & Usage Guide
+Assicurati di avere **Python 3.9 o superiore** installato sul tuo sistema.
 
-1. Setup & Configuration
+**1. Clona la repository:**
+```bash
+git clone https://github.com/tuo-utente/Ai-Lab-Project.git
+cd Ai-Lab-Project
+```
 
-Adjust the TARGET_WORDS in src/config.py to select the specific signs you want to classify. By default, the model recognizes: happen, finally, late, not-yet, misunderstand, understand, and an unknown class.
+**2. Crea e attiva un ambiente virtuale:**
+```bash
+# macOS/Linux
+python -m venv .venv
+source .venv/bin/activate
 
-2. Download and Parse Datasets
+# Windows
+python -m venv .venv
+.venv\Scripts\activate
+```
 
-Download the raw datasets from Kaggle and parse their metadata to extract only the videos corresponding to your target words.
+**3. Installa le dipendenze:**
+```bash
+pip install torch torchvision torchaudio torchmetrics mediapipe opencv-python numpy pandas matplotlib seaborn scikit-learn kagglehub yt-dlp moviepy
+```
+*(Nota: Se hai una GPU NVIDIA, assicurati di installare la versione di PyTorch compatibile con CUDA per accelerare il training).*
 
+## 🚀 Utilizzo
+
+La pipeline è progettata per essere eseguita in fasi sequenziali. Prima di iniziare, puoi configurare le parole da riconoscere (`TARGET_WORDS`) modificando il file `src/config.py`.
+
+### Fase 1: Download e Parsing dei Dataset
+Scarica i dataset grezzi ed estrai i clip video `.mp4` associati alle tue parole target.
+```bash
 python src/enlarge_dataset/download_datasets.py --dataset all
 python src/parsers/MSASL_parser.py
 python src/parsers/WLASL_parser.py
 python src/parsers/ASLCitizen_parser.py
+```
 
-Note: This will output .mp4 clips to data/raw/.
-
-3. Extract Features (MediaPipe)
-
-Convert the raw .mp4 videos into NumPy arrays (.npy) containing the spatial coordinates of the hands and face across all frames.
-
+### Fase 2: Estrazione delle Feature
+Converti i video `.mp4` in sequenze vettoriali (tensori NumPy `.npy`) tramite MediaPipe.
+```bash
 python src/extract_features.py
+```
 
-
-4. Data Augmentation
-
-Balance your dataset by generating synthetic variations of your existing signs to prevent class imbalance and improve model generalization.
-
+### Fase 3: Data Augmentation
+Bilancia il numero di campioni per ogni classe generando variazioni sintetiche (il setup di base garantisce robustezza contro l'overfitting).
+```bash
 python src/enlarge_dataset/augment_dataset.py
+```
 
-
-5. Train the Model
-
-Train the PyTorch LSTM model. You can specify the mode (MANI_VOLTO or SOLO_MANI), hyperparameters, and experiment tracking versions.
-
+### Fase 4: Addestramento del Modello (Training)
+Avvia l'addestramento della rete LSTM. Puoi scegliere tra la modalità `MANI_VOLTO` o `SOLO_MANI`.
+```bash
 python src/neural_network/train.py --modalita MANI_VOLTO --epochs 200 --batch_size 8
+```
 
-
-Tip: Use automatize_train_and_test.py or tuning.py to run automated hyperparameter tuning and model comparisons.
-
-6. Evaluate the Model
-
-Generate learning curves, classification reports (Precision, Recall, F1), and a Confusion Matrix for the best-trained model.
-
+### Fase 5: Valutazione (Test)
+Verifica le performance del modello migliore salvato. Questo script genererà curve di apprendimento, matrici di confusione e classification report (in formato testuale e grafico) dentro la cartella `results/`.
+```bash
 python src/neural_network/test.py --modalita MANI_VOLTO
+```
 
-
-Outputs are saved in the results/ directory.
-
-7. Run Inference
-
-Single Video File:
-
-python src/webcam/predict_single.py --video_path path/to/your/video.mp4 --modalita MANI_VOLTO
-
-
-Real-Time Webcam (Live):
-
+### Fase 6: Inferenza Live (Webcam)
+Avvia l'applicativo per testare il modello in tempo reale! 
+- Premi **R** per avviare/stoppare la registrazione di un gesto.
+- Premi **Q** per uscire.
+```bash
 python src/webcam/webcam_inference.py --modalita MANI_VOLTO
-
-
-Controls inside Webcam HUD: * Press R to start/stop recording your sign. Upon stopping, inference is immediately calculated and displayed.
-
-Press Q to quit.
-
-🧠 Model Architecture details
-
-The core model (SignLanguageLSTM) relies on a standard Long Short-Term Memory (LSTM) architecture.
-
-Input Layer: Takes sequential keypoint data (Shape: Batch, Sequence_Length, Features).
-
-Hidden Layers: Configurable hidden size and layer count. Uses PyTorch's pack_padded_sequence to dynamically ignore padding zeros in variable-length videos.
-
-Output Layer: Fully connected layer with Softmax mapping to the number of target classes.
-
-Out-of-Distribution (OOD): If the highest prediction confidence falls below a configured threshold (default 60%), the prediction is forced to an unknown class.
-
-🛠️ Requirements
-
-Python 3.9+
-
-torch, torchvision, torchaudio, torchmetrics
-
-mediapipe, opencv-python
-
-numpy, pandas, matplotlib, seaborn, scikit-learn
-
-kagglehub, yt-dlp, moviepy (for dataset acquisition)
+```
